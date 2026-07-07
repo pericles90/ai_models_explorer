@@ -18,24 +18,24 @@ Uma aplicação web que exibe informações em tempo real sobre centenas de mode
 
 ## 🚀 Demo
 
-Abra o arquivo `openrouter-explorer.html` em qualquer navegador moderno.
+Abra o arquivo `index.html` em qualquer navegador moderno.
 
 ## 📖 Uso
 
 ### Web
 ```bash
 # Clone o repositório
-git clone https://github.com/seu-usuario/openrouter-explorer.git
+git clone https://github.com/pericles90/ai_models_explorer.git
 
 # Abra no navegador
-open openrouter-explorer.html
+open index.html
 ```
 
 ### Android (WebView)
 O arquivo pode ser embarcado diretamente em uma WebView Android:
 
 ```kotlin
-webView.loadUrl("file:///android_asset/openrouter-explorer.html")
+webView.loadUrl("file:///android_asset/index.html")
 ```
 
 ## 🔧 Parâmetros Documentados
@@ -62,9 +62,8 @@ O explorador inclui explicações detalhadas para os principais parâmetros de A
 
 ```
 .
-├── openrouter-explorer.html   # Aplicação completa (single-file)
-├── README.md                  # Este arquivo
-└── LICENSE                    # Licença MIT
+├── index.html   # Aplicação completa (single-file)
+└── README.md    # Este arquivo
 ```
 
 ## 🤝 Contribuindo
@@ -79,7 +78,7 @@ Contribuições são bem-vindas! Sinta-se à vontade para:
 
 ## 📝 Licença
 
-Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para mais detalhes.
+Este projeto está sob a [licença MIT](https://opensource.org/licenses/MIT).
 
 ## 🙏 Créditos
 
