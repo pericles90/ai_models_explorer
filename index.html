@@ -938,19 +938,19 @@
             <div id="combosSearch" class="search-content">
                 <div class="combo-filters">
                     <div class="filter-group">
-                        <label>Provedor</label>
+                        <label for="providerFilter">Provedor</label>
                         <select class="filter-select" id="providerFilter">
                             <option value="">Todos os provedores</option>
                         </select>
                     </div>
                     <div class="filter-group">
-                        <label>Modelo</label>
+                        <label for="modelFilter">Modelo</label>
                         <select class="filter-select" id="modelFilter">
                             <option value="">Todos os modelos</option>
                         </select>
                     </div>
                     <div class="filter-group">
-                        <label>Parâmetro Suportado</label>
+                        <label for="paramFilter">Parâmetro Suportado</label>
                         <select class="filter-select" id="paramFilter">
                             <option value="">Todos os parâmetros</option>
                         </select>
@@ -976,9 +976,9 @@
     </div>
 
     <div class="modal-overlay" id="modalOverlay">
-        <div class="modal-content" id="modalContent">
+        <div class="modal-content" id="modalContent" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
             <div class="modal-header">
-                <button class="modal-close" id="modalClose">✕</button>
+                <button class="modal-close" id="modalClose" aria-label="Fechar detalhes do modelo">✕</button>
                 <h2 class="modal-title" id="modalTitle">Nome do Modelo</h2>
                 <p class="modal-subtitle" id="modalSubtitle">modelo/id</p>
             </div>
@@ -992,7 +992,32 @@
         let filteredModels = [];
         let allProviders = new Set();
         let allParameters = new Set();
-        let currentProvider = null; // Para armazenar o provedor do modelo atual no modal
+        let searchTimeout = null;
+        let lastFocusedElement = null;
+
+        // Cache local do payload da API
+        const MODELS_CACHE_KEY = 'openrouter-models-cache-v1';
+        const MODELS_CACHE_TTL_MS = 60 * 60 * 1000; // 1 hora
+        const FETCH_TIMEOUT_MS = 15000;
+
+        // Escapa dados externos antes de interpolar em innerHTML/atributos
+        function escapeHtml(value) {
+            return String(value ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function getProvider(model) {
+            return model.id.includes('/') ? model.id.split('/')[0] : model.id;
+        }
+
+        function getModelDisplayName(model) {
+            if (model.name) return model.name;
+            return model.id.includes('/') ? model.id.split('/').slice(1).join('/') : model.id;
+        }
 
         // Links de documentação por provedor
         const providerDocs = {
@@ -1322,8 +1347,7 @@
 
 <p><strong>💡 Dica:</strong> Use nomes de funções descritivos e em snake_case (ex: get_weather, search_database, send_email).</p>`,
                 example: '"tools": [{"type": "function", "function": {"name": "get_weather", "description": "Obtém clima atual", "parameters": {"type": "object", "properties": {"city": {"type": "string"}}, "required": ["city"]}}}]',
-                default: 'null',
-                hasDocLink: true
+                default: 'null'
             },
             'tool_choice': {
                 type: 'string | object',
@@ -1411,19 +1435,20 @@
                 default: 'null'
             },
             'verbosity': {
-                type: 'number (0.0 - 1.0)',
+                type: 'string ("low" | "medium" | "high")',
                 description: `<strong>Controla o nível de detalhamento da resposta.</strong>
 
-<p>Parâmetro específico de alguns provedores via OpenRouter:</p>
+<p>Parâmetro introduzido pela OpenAI (modelos GPT-5+) e repassado pela OpenRouter aos provedores compatíveis:</p>
 
 <ul>
-<li><strong>Valores baixos:</strong> Respostas mais concisas e diretas</li>
-<li><strong>Valores altos:</strong> Respostas mais detalhadas e explicativas</li>
+<li><strong>"low":</strong> Respostas mais concisas e diretas</li>
+<li><strong>"medium":</strong> Nível de detalhamento padrão</li>
+<li><strong>"high":</strong> Respostas mais detalhadas e explicativas</li>
 </ul>
 
-<p>Para modelos Anthropic, mapeia para o parâmetro <code>output_config.effort</code>.</p>`,
-                example: '"verbosity": 0.5',
-                default: 'Padrão do modelo'
+<p>Diferente de <code>max_tokens</code>, não trunca a resposta: orienta o modelo sobre quão verboso deve ser.</p>`,
+                example: '"verbosity": "low"',
+                default: '"medium"'
             }
         };
 
@@ -1436,55 +1461,93 @@
             setupEventListeners();
         });
 
-        // Carrega modelos da API
-        async function loadModels() {
+        // Lê o cache local, se ainda válido
+        function readModelsCache() {
             try {
-                const response = await fetch('https://openrouter.ai/api/v1/models');
-                if (!response.ok) throw new Error('Falha ao carregar modelos');
-                
-                const data = await response.json();
-                allModels = data.data || [];
-                
-                // Ordena por data de criação (mais recentes primeiro)
-                allModels.sort((a, b) => {
-                    const dateA = a.created || 0;
-                    const dateB = b.created || 0;
-                    return dateB - dateA;
-                });
-                
-                // Extrai provedores e parâmetros únicos
-                allModels.forEach(model => {
-                    const provider = model.id.split('/')[0];
-                    allProviders.add(provider);
-                    
-                    if (model.supported_parameters) {
-                        model.supported_parameters.forEach(param => allParameters.add(param));
-                    }
-                });
+                const raw = localStorage.getItem(MODELS_CACHE_KEY);
+                if (!raw) return null;
+                const cached = JSON.parse(raw);
+                if (!Array.isArray(cached.models)) return null;
+                if (Date.now() - cached.savedAt > MODELS_CACHE_TTL_MS) return null;
+                return cached.models;
+            } catch {
+                return null;
+            }
+        }
 
-                // Atualiza estatísticas
-                document.getElementById('totalModels').textContent = allModels.length;
-                document.getElementById('totalProviders').textContent = allProviders.size;
-                document.getElementById('totalParams').textContent = allParameters.size;
+        function writeModelsCache(models) {
+            try {
+                localStorage.setItem(MODELS_CACHE_KEY, JSON.stringify({ savedAt: Date.now(), models }));
+            } catch {
+                // localStorage indisponível ou cheio: segue sem cache
+            }
+        }
 
-                // Popula filtros iniciais
-                populateProviderFilter();
-                populateModelFilter(allModels);
-                populateParamFilter(allParameters);
-                
-                // Exibe modelos
-                filteredModels = [...allModels];
-                renderModels(filteredModels);
-                
+        // Carrega modelos da API (ou do cache local)
+        async function loadModels() {
+            document.getElementById('modelsContainer').innerHTML = `
+                <div class="loading">
+                    <div class="loading-spinner"></div>
+                    <div class="loading-text">Carregando modelos da API OpenRouter...</div>
+                </div>
+            `;
+
+            try {
+                let models = readModelsCache();
+                if (!models) {
+                    const response = await fetch('https://openrouter.ai/api/v1/models', {
+                        signal: AbortSignal.timeout(FETCH_TIMEOUT_MS)
+                    });
+                    if (!response.ok) throw new Error(`Falha ao carregar modelos (HTTP ${response.status})`);
+                    const data = await response.json();
+                    models = data.data || [];
+                    writeModelsCache(models);
+                }
+                initModels(models);
             } catch (error) {
                 console.error('Erro ao carregar modelos:', error);
+                const message = error.name === 'TimeoutError'
+                    ? 'Tempo limite excedido ao contatar a API.'
+                    : error.message;
                 document.getElementById('modelsContainer').innerHTML = `
                     <div class="error-message">
                         <p>❌ Erro ao carregar modelos da API OpenRouter</p>
-                        <p style="font-size: 0.85rem; margin-top: 10px;">${error.message}</p>
+                        <p style="font-size: 0.85rem; margin-top: 10px;">${escapeHtml(message)}</p>
+                        <button class="clear-filters-btn" id="retryBtn" style="margin-top: 15px;">🔄 Tentar novamente</button>
                     </div>
                 `;
+                document.getElementById('retryBtn').addEventListener('click', loadModels);
             }
+        }
+
+        // Inicializa estado, estatísticas e filtros a partir dos modelos carregados
+        function initModels(models) {
+            allModels = models;
+
+            // Ordena por data de criação (mais recentes primeiro)
+            allModels.sort((a, b) => (b.created || 0) - (a.created || 0));
+
+            // Extrai provedores e parâmetros únicos
+            allProviders = new Set();
+            allParameters = new Set();
+            allModels.forEach(model => {
+                allProviders.add(getProvider(model));
+                if (model.supported_parameters) {
+                    model.supported_parameters.forEach(param => allParameters.add(param));
+                }
+            });
+
+            // Atualiza estatísticas
+            document.getElementById('totalModels').textContent = allModels.length;
+            document.getElementById('totalProviders').textContent = allProviders.size;
+            document.getElementById('totalParams').textContent = allParameters.size;
+
+            // Popula filtros iniciais
+            populateProviderFilter();
+            populateModelFilter(allModels);
+            populateParamFilter(allParameters);
+
+            refreshResults();
         }
 
         // Popula o filtro de provedores
@@ -1547,90 +1610,96 @@
                 tab.addEventListener('click', () => {
                     document.querySelectorAll('.search-tab').forEach(t => t.classList.remove('active'));
                     document.querySelectorAll('.search-content').forEach(c => c.classList.remove('active'));
-                    
+
                     tab.classList.add('active');
                     document.getElementById(`${tab.dataset.tab}Search`).classList.add('active');
                 });
             });
 
-            // Busca por texto
-            let searchTimeout;
-            document.getElementById('textSearchInput').addEventListener('input', (e) => {
+            // Busca por texto (com debounce)
+            document.getElementById('textSearchInput').addEventListener('input', () => {
                 clearTimeout(searchTimeout);
-                searchTimeout = setTimeout(() => filterByText(e.target.value), 300);
+                searchTimeout = setTimeout(refreshResults, 300);
             });
 
             // Limpar busca por texto
             document.getElementById('clearTextSearch').addEventListener('click', () => {
+                clearTimeout(searchTimeout);
                 document.getElementById('textSearchInput').value = '';
-                filteredModels = [...allModels];
-                renderModels(filteredModels);
+                refreshResults();
             });
 
             // Filtro de provedor (interdependente)
             document.getElementById('providerFilter').addEventListener('change', (e) => {
                 const selectedProvider = e.target.value;
-                
-                // Filtra modelos pelo provedor
-                let availableModels = allModels;
-                if (selectedProvider) {
-                    availableModels = allModels.filter(m => m.id.split('/')[0] === selectedProvider);
-                }
-                
-                // Atualiza combo de modelos
+                const availableModels = selectedProvider
+                    ? allModels.filter(m => getProvider(m) === selectedProvider)
+                    : allModels;
+
+                // Atualiza combos de modelos e parâmetros para o provedor
+                // (a seleção anterior é mantida quando ainda válida)
                 populateModelFilter(availableModels);
-                document.getElementById('modelFilter').value = '';
-                
-                // Coleta parâmetros dos modelos disponíveis
-                const availableParams = new Set();
-                availableModels.forEach(model => {
-                    if (model.supported_parameters) {
-                        model.supported_parameters.forEach(p => availableParams.add(p));
-                    }
-                });
-                
-                // Atualiza combo de parâmetros
-                populateParamFilter(availableParams);
-                
-                applyFilters();
+                populateParamFilter(collectParams(availableModels));
+
+                refreshResults();
             });
 
             // Filtro de modelo (interdependente)
             document.getElementById('modelFilter').addEventListener('change', (e) => {
-                const selectedModelId = e.target.value;
-                
-                if (selectedModelId) {
-                    const selectedModel = allModels.find(m => m.id === selectedModelId);
-                    if (selectedModel) {
-                        // Atualiza provedor automaticamente
-                        const provider = selectedModel.id.split('/')[0];
-                        document.getElementById('providerFilter').value = provider;
-                        
-                        // Atualiza parâmetros disponíveis
-                        const modelParams = new Set(selectedModel.supported_parameters || []);
-                        populateParamFilter(modelParams);
-                    }
+                const selectedModel = allModels.find(m => m.id === e.target.value);
+
+                if (selectedModel) {
+                    // Atualiza provedor automaticamente
+                    document.getElementById('providerFilter').value = getProvider(selectedModel);
+                    populateParamFilter(new Set(selectedModel.supported_parameters || []));
+                } else {
+                    // "Todos os modelos": restaura os parâmetros do provedor selecionado (ou de todos)
+                    const providerVal = document.getElementById('providerFilter').value;
+                    const availableModels = providerVal
+                        ? allModels.filter(m => getProvider(m) === providerVal)
+                        : allModels;
+                    populateParamFilter(collectParams(availableModels));
                 }
-                
-                applyFilters();
+
+                refreshResults();
             });
 
             // Filtro de parâmetro
-            document.getElementById('paramFilter').addEventListener('change', applyFilters);
+            document.getElementById('paramFilter').addEventListener('change', refreshResults);
 
             // Limpar filtros
             document.getElementById('clearFilters').addEventListener('click', () => {
                 document.getElementById('providerFilter').value = '';
                 document.getElementById('modelFilter').value = '';
                 document.getElementById('paramFilter').value = '';
-                
+
                 // Restaura todos os combos
                 populateModelFilter(allModels);
                 populateParamFilter(allParameters);
-                
-                filteredModels = [...allModels];
-                renderModels(filteredModels);
-                updateActiveFiltersInfo();
+
+                refreshResults();
+            });
+
+            // Abertura do modal via delegação (um listener para todos os cards)
+            document.getElementById('modelsContainer').addEventListener('click', (e) => {
+                const card = e.target.closest('.model-card');
+                if (!card) return;
+                const model = allModels.find(m => m.id === card.dataset.modelId);
+                if (model) openModal(model);
+            });
+
+            // Expansão de parâmetros no modal via delegação
+            document.getElementById('modalBody').addEventListener('click', (e) => {
+                const header = e.target.closest('.param-header');
+                if (header) toggleParamItem(header);
+            });
+            document.getElementById('modalBody').addEventListener('keydown', (e) => {
+                if (e.key !== 'Enter' && e.key !== ' ') return;
+                const header = e.target.closest('.param-header');
+                if (header) {
+                    e.preventDefault();
+                    toggleParamItem(header);
+                }
             });
 
             // Modal
@@ -1642,70 +1711,97 @@
             });
 
             document.addEventListener('keydown', (e) => {
-                if (e.key === 'Escape') closeModal();
+                const overlay = document.getElementById('modalOverlay');
+                if (!overlay.classList.contains('active')) return;
+
+                if (e.key === 'Escape') {
+                    closeModal();
+                    return;
+                }
+
+                // Focus trap: mantém o Tab dentro do modal
+                if (e.key === 'Tab') {
+                    const focusables = document.getElementById('modalContent')
+                        .querySelectorAll('button, a[href], [tabindex]:not([tabindex="-1"])');
+                    if (focusables.length === 0) return;
+                    const first = focusables[0];
+                    const last = focusables[focusables.length - 1];
+                    if (e.shiftKey && document.activeElement === first) {
+                        e.preventDefault();
+                        last.focus();
+                    } else if (!e.shiftKey && document.activeElement === last) {
+                        e.preventDefault();
+                        first.focus();
+                    }
+                }
             });
         }
 
-        // Filtro por texto
-        function filterByText(query) {
-            if (!query.trim()) {
-                filteredModels = [...allModels];
-            } else {
-                const q = query.toLowerCase().trim();
-                filteredModels = allModels.filter(model => {
-                    if (model.name && model.name.toLowerCase().includes(q)) return true;
-                    if (model.id.toLowerCase().includes(q)) return true;
-                    const provider = model.id.split('/')[0];
-                    if (provider.toLowerCase().includes(q)) return true;
-                    if (model.description && model.description.toLowerCase().includes(q)) return true;
-                    if (model.supported_parameters) {
-                        if (model.supported_parameters.some(p => p.toLowerCase().includes(q))) return true;
-                    }
-                    return false;
-                });
-            }
-            renderModels(filteredModels);
+        function toggleParamItem(header) {
+            const item = header.parentElement;
+            item.classList.toggle('expanded');
+            header.setAttribute('aria-expanded', item.classList.contains('expanded'));
         }
 
-        // Aplica filtros de combo
-        function applyFilters() {
+        // Coleta os parâmetros suportados por um conjunto de modelos
+        function collectParams(models) {
+            const params = new Set();
+            models.forEach(model => {
+                (model.supported_parameters || []).forEach(p => params.add(p));
+            });
+            return params;
+        }
+
+        // Pipeline único de filtros: texto + provedor + modelo + parâmetro
+        function getFilteredModels() {
+            const q = document.getElementById('textSearchInput').value.toLowerCase().trim();
             const providerVal = document.getElementById('providerFilter').value;
             const modelVal = document.getElementById('modelFilter').value;
             const paramVal = document.getElementById('paramFilter').value;
 
-            filteredModels = allModels.filter(model => {
-                const provider = model.id.split('/')[0];
-                
-                if (providerVal && provider !== providerVal) return false;
+            return allModels.filter(model => {
+                if (providerVal && getProvider(model) !== providerVal) return false;
                 if (modelVal && model.id !== modelVal) return false;
-                
-                if (paramVal) {
-                    if (!model.supported_parameters || !Array.isArray(model.supported_parameters)) {
-                        return false;
-                    }
-                    if (!model.supported_parameters.includes(paramVal)) {
-                        return false;
-                    }
+                if (paramVal && !(model.supported_parameters || []).includes(paramVal)) return false;
+
+                if (q) {
+                    const matchesText =
+                        (model.name && model.name.toLowerCase().includes(q)) ||
+                        model.id.toLowerCase().includes(q) ||
+                        getProvider(model).toLowerCase().includes(q) ||
+                        (model.description && model.description.toLowerCase().includes(q)) ||
+                        (model.supported_parameters || []).some(p => p.toLowerCase().includes(q));
+                    if (!matchesText) return false;
                 }
-                
+
                 return true;
             });
+        }
 
+        // Recalcula e re-renderiza os resultados a partir do estado atual dos filtros
+        function refreshResults() {
+            filteredModels = getFilteredModels();
             renderModels(filteredModels);
             updateActiveFiltersInfo();
         }
 
         // Atualiza informação de filtros ativos
         function updateActiveFiltersInfo() {
+            const textVal = document.getElementById('textSearchInput').value.trim();
             const providerVal = document.getElementById('providerFilter').value;
             const modelVal = document.getElementById('modelFilter').value;
             const paramVal = document.getElementById('paramFilter').value;
-            
+
             const activeFilters = [];
-            if (providerVal) activeFilters.push(`Provedor: <strong>${providerVal}</strong>`);
-            if (modelVal) activeFilters.push(`Modelo: <strong>${modelVal.split('/')[1]}</strong>`);
-            if (paramVal) activeFilters.push(`Parâmetro: <strong>${paramVal}</strong>`);
-            
+            if (textVal) activeFilters.push(`Texto: <strong>${escapeHtml(textVal)}</strong>`);
+            if (providerVal) activeFilters.push(`Provedor: <strong>${escapeHtml(providerVal)}</strong>`);
+            if (modelVal) {
+                const model = allModels.find(m => m.id === modelVal);
+                const label = model ? getModelDisplayName(model) : modelVal;
+                activeFilters.push(`Modelo: <strong>${escapeHtml(label)}</strong>`);
+            }
+            if (paramVal) activeFilters.push(`Parâmetro: <strong>${escapeHtml(paramVal)}</strong>`);
+
             const infoEl = document.getElementById('activeFiltersInfo');
             if (activeFilters.length > 0) {
                 infoEl.innerHTML = '🔍 ' + activeFilters.join(' • ');
@@ -1732,14 +1828,6 @@
             }
 
             container.innerHTML = `<div class="models-grid">${models.map(model => createModelCard(model)).join('')}</div>`;
-
-            container.querySelectorAll('.model-card').forEach(card => {
-                card.addEventListener('click', () => {
-                    const modelId = card.dataset.modelId;
-                    const model = allModels.find(m => m.id === modelId);
-                    if (model) openModal(model);
-                });
-            });
         }
 
         // Formata data Unix timestamp
@@ -1751,26 +1839,26 @@
 
         // Cria um card de modelo
         function createModelCard(model) {
-            const provider = model.id.split('/')[0];
+            const provider = getProvider(model);
             const pricing = model.pricing || {};
             const contextLength = model.context_length || 'N/A';
             const modality = model.architecture?.modality || 'text→text';
             const dateStr = model.created ? formatDate(model.created) : '';
-            
+
             const promptPrice = formatPrice(pricing.prompt);
             const completionPrice = formatPrice(pricing.completion);
 
             return `
-                <div class="model-card" data-model-id="${model.id}">
+                <div class="model-card" data-model-id="${escapeHtml(model.id)}">
                     <div class="model-header">
-                        <span class="model-provider">${provider}</span>
+                        <span class="model-provider">${escapeHtml(provider)}</span>
                         ${dateStr ? `<span class="model-date">📅 ${dateStr}</span>` : ''}
                     </div>
-                    <h3 class="model-name">${model.name || model.id.split('/')[1]}</h3>
-                    <p class="model-id">${model.id}</p>
+                    <h3 class="model-name">${escapeHtml(getModelDisplayName(model))}</h3>
+                    <p class="model-id">${escapeHtml(model.id)}</p>
                     <div class="model-meta">
                         <span class="meta-tag context">📊 ${formatContext(contextLength)}</span>
-                        <span class="meta-tag modality">🔄 ${modality}</span>
+                        <span class="meta-tag modality">🔄 ${escapeHtml(modality)}</span>
                     </div>
                     <div class="model-pricing">
                         <div class="price-item">
@@ -1786,14 +1874,26 @@
             `;
         }
 
-        // Formata preço
+        // Formata preço por token (exibido por 1M de tokens)
+        // A API usa "-1" para modelos de roteamento com preço variável (ex: openrouter/auto)
         function formatPrice(price) {
-            if (!price || price === '0' || parseFloat(price) === 0) return 'Grátis';
             const priceNum = parseFloat(price);
+            if (price === undefined || price === null || price === '' || Number.isNaN(priceNum)) return 'N/A';
+            if (priceNum < 0) return 'Variável';
+            if (priceNum === 0) return 'Grátis';
             const pricePerMillion = priceNum * 1000000;
             if (pricePerMillion < 0.01) return `$${pricePerMillion.toFixed(4)}`;
             if (pricePerMillion < 1) return `$${pricePerMillion.toFixed(3)}`;
             return `$${pricePerMillion.toFixed(2)}`;
+        }
+
+        // Formata preço por unidade (requisição, imagem), sem multiplicar por 1M
+        function formatUnitPrice(price) {
+            const priceNum = parseFloat(price);
+            if (price === undefined || price === null || price === '' || Number.isNaN(priceNum)) return 'N/A';
+            if (priceNum < 0) return 'Variável';
+            if (priceNum === 0) return 'Grátis';
+            return `$${priceNum}`;
         }
 
         // Formata contexto
@@ -1806,11 +1906,9 @@
 
         // Abre o modal de detalhes
         function openModal(model) {
-            const provider = model.id.split('/')[0];
-            currentProvider = provider; // Armazena para uso no createParamItem
-            const docLink = providerDocs[provider] || providerDocs['default'];
-            
-            document.getElementById('modalTitle').textContent = model.name || model.id.split('/')[1];
+            const provider = getProvider(model);
+
+            document.getElementById('modalTitle').textContent = getModelDisplayName(model);
             document.getElementById('modalSubtitle').textContent = model.id;
             
             const pricing = model.pricing || {};
@@ -1873,11 +1971,11 @@
                         </div>
                         <div class="info-item">
                             <div class="info-label">Por Requisição</div>
-                            <div class="info-value">${pricing.request && pricing.request !== '0' ? '$' + pricing.request : 'Grátis'}</div>
+                            <div class="info-value">${formatUnitPrice(pricing.request)}</div>
                         </div>
                         <div class="info-item">
                             <div class="info-label">Por Imagem</div>
-                            <div class="info-value">${pricing.image && pricing.image !== '0' ? '$' + pricing.image : 'Grátis'}</div>
+                            <div class="info-value">${formatUnitPrice(pricing.image)}</div>
                         </div>
                     </div>
                 </div>
@@ -1885,7 +1983,7 @@
                 ${model.description ? `
                 <div class="detail-section">
                     <div class="section-title">Descrição</div>
-                    <p style="color: var(--text-secondary); line-height: 1.7;">${model.description}</p>
+                    <p style="color: var(--text-secondary); line-height: 1.7;">${escapeHtml(model.description)}</p>
                 </div>
                 ` : ''}
 
@@ -1943,19 +2041,17 @@
             document.getElementById('modalOverlay').classList.add('active');
             document.body.style.overflow = 'hidden';
 
-            modalBody.querySelectorAll('.param-header').forEach(header => {
-                header.addEventListener('click', () => {
-                    header.parentElement.classList.toggle('expanded');
-                });
-            });
+            // Move o foco para dentro do modal e guarda o elemento de origem
+            lastFocusedElement = document.activeElement;
+            document.getElementById('modalClose').focus();
         }
 
         // Cria item de parâmetro
         function createParamItem(param, isRequired, provider) {
             const info = paramDescriptions[param] || {
                 type: 'varies',
-                description: `<p>Parâmetro ${param}. Consulte a documentação do provedor para mais detalhes sobre uso e valores aceitos.</p>`,
-                example: `"${param}": valor`,
+                description: `<p>Parâmetro ${escapeHtml(param)}. Consulte a documentação do provedor para mais detalhes sobre uso e valores aceitos.</p>`,
+                example: `"${escapeHtml(param)}": valor`,
                 default: 'Varia'
             };
 
@@ -1965,7 +2061,7 @@
             if (param === 'model') {
                 return `
                     <div class="param-item">
-                        <div class="param-header">
+                        <div class="param-header" role="button" tabindex="0" aria-expanded="false">
                             <span class="param-name">model</span>
                             <span class="param-type">string</span>
                             <span class="param-expand-icon">▼</span>
@@ -1988,7 +2084,7 @@
             if (param === 'messages') {
                 return `
                     <div class="param-item">
-                        <div class="param-header">
+                        <div class="param-header" role="button" tabindex="0" aria-expanded="false">
                             <span class="param-name">messages</span>
                             <span class="param-type">array</span>
                             <span class="param-expand-icon">▼</span>
@@ -2016,14 +2112,14 @@
 
             return `
                 <div class="param-item">
-                    <div class="param-header">
-                        <span class="param-name">${param}</span>
-                        <span class="param-type">${info.type}</span>
+                    <div class="param-header" role="button" tabindex="0" aria-expanded="false">
+                        <span class="param-name">${escapeHtml(param)}</span>
+                        <span class="param-type">${escapeHtml(info.type)}</span>
                         <span class="param-expand-icon">▼</span>
                     </div>
                     <div class="param-details">
                         <div class="param-description">${info.description}</div>
-                        ${showDocLink ? `<a href="${docLink}" target="_blank" class="provider-doc-link">📚 Ver documentação de Tools do ${provider}</a>` : ''}
+                        ${showDocLink ? `<a href="${docLink}" target="_blank" rel="noopener" class="provider-doc-link">📚 Ver documentação de Tools do ${escapeHtml(provider)}</a>` : ''}
                         <div class="param-example">
                             <div class="param-example-label">Exemplo</div>
                             <code>${info.example}</code>
@@ -2115,21 +2211,24 @@
             const isExpanding = btn.textContent.includes('Expandir');
             
             items.forEach(item => {
-                if (isExpanding) {
-                    item.classList.add('expanded');
-                } else {
-                    item.classList.remove('expanded');
-                }
+                item.classList.toggle('expanded', isExpanding);
+                const header = item.querySelector('.param-header');
+                if (header) header.setAttribute('aria-expanded', isExpanding);
             });
-            
+
             btn.textContent = isExpanding ? 'Recolher tudo' : 'Expandir tudo';
         }
 
         // Fecha o modal
         function closeModal() {
-            document.getElementById('modalOverlay').classList.remove('active');
+            const overlay = document.getElementById('modalOverlay');
+            if (!overlay.classList.contains('active')) return;
+            overlay.classList.remove('active');
             document.body.style.overflow = '';
-            currentProvider = null;
+            if (lastFocusedElement && typeof lastFocusedElement.focus === 'function') {
+                lastFocusedElement.focus();
+            }
+            lastFocusedElement = null;
         }
     </script>
 </body>
