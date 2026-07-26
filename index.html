@@ -273,6 +273,203 @@
             border-color: var(--accent-secondary);
         }
 
+        /* ---- Combobox multi-seleção com busca ---- */
+        .ms { position: relative; }
+
+        .ms-btn {
+            width: 100%;
+            padding: 12px 36px 12px 16px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 0.95rem;
+            text-align: left;
+            cursor: pointer;
+            transition: border-color 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .ms-btn:hover { border-color: var(--accent-secondary); }
+
+        .ms-btn:focus-visible {
+            outline: 2px solid var(--accent-primary);
+            outline-offset: 2px;
+        }
+
+        .ms[data-aberto="1"] .ms-btn { border-color: var(--accent-primary); }
+
+        .ms-btn-texto {
+            flex: 1;
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .ms-btn-texto.vazio { color: var(--text-muted); }
+
+        .ms-badge {
+            flex-shrink: 0;
+            background: var(--accent-primary);
+            color: #fff;
+            font-size: 0.7rem;
+            font-weight: 600;
+            padding: 1px 7px;
+            border-radius: 10px;
+        }
+
+        .ms-seta {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+            font-size: 0.7rem;
+            pointer-events: none;
+        }
+
+        .ms-painel {
+            position: absolute;
+            z-index: 50;
+            top: calc(100% + 4px);
+            left: 0;
+            right: 0;
+            background: var(--bg-secondary);
+            border: 1px solid var(--accent-primary);
+            border-radius: var(--radius-sm);
+            box-shadow: var(--shadow-md);
+            display: flex;
+            flex-direction: column;
+            max-height: 340px;
+        }
+
+        .ms-painel[hidden] { display: none; }
+
+        .ms-busca {
+            margin: 8px;
+            padding: 8px 10px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 0.85rem;
+        }
+
+        .ms-busca:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+        }
+
+        .ms-lista {
+            overflow-y: auto;
+            padding: 0 4px 4px;
+            flex: 1;
+        }
+
+        .ms-opcao {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 7px 8px;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .ms-opcao:hover,
+        .ms-opcao.destacada { background: var(--bg-card-hover); color: var(--text-primary); }
+
+        .ms-opcao input { accent-color: var(--accent-primary); cursor: pointer; flex-shrink: 0; }
+
+        .ms-opcao-rotulo {
+            flex: 1;
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .ms-opcao-contagem { color: var(--text-muted); font-size: 0.75rem; flex-shrink: 0; }
+
+        .ms-opcao.zerada { opacity: 0.45; }
+
+        .ms-vazio {
+            padding: 14px 10px;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.8rem;
+        }
+
+        .ms-rodape {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+            padding: 8px;
+            border-top: 1px solid var(--border-color);
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .ms-rodape button {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            color: var(--text-secondary);
+            font-family: inherit;
+            font-size: 0.75rem;
+            padding: 4px 10px;
+            cursor: pointer;
+        }
+
+        .ms-rodape button:hover { border-color: var(--danger); color: var(--danger); }
+
+        /* ---- Alternador E / OU ---- */
+        .modo-toggle {
+            display: inline-flex;
+            margin-left: 8px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            overflow: hidden;
+            vertical-align: middle;
+        }
+
+        .modo-toggle button {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            font-family: inherit;
+            font-size: 0.65rem;
+            font-weight: 700;
+            padding: 2px 8px;
+            cursor: pointer;
+        }
+
+        .modo-toggle button.active { background: var(--accent-primary); color: #fff; }
+
+        /* ---- Ordenação ---- */
+        .sort-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .sort-group label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            white-space: nowrap;
+        }
+
+        .sort-group .filter-select { padding: 8px 34px 8px 12px; font-size: 0.85rem; }
+
         .clear-filters-btn {
             padding: 10px 20px;
             background: transparent;
@@ -598,6 +795,172 @@
 
         .override-item .price-extras {
             margin-top: 8px;
+        }
+
+        /* ---- Benchmarks no card ---- */
+        .bench-block {
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .bench-title {
+            font-size: 0.6rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            gap: 8px;
+        }
+
+        .bench-row {
+            display: grid;
+            grid-template-columns: 68px 1fr 38px;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 5px;
+        }
+
+        .bench-row:last-child { margin-bottom: 0; }
+
+        .bench-nome { font-size: 0.68rem; color: var(--text-muted); }
+
+        .bench-barra {
+            height: 6px;
+            background: var(--bg-secondary);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .bench-preenchida {
+            height: 100%;
+            border-radius: 3px;
+            background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary));
+        }
+
+        .bench-preenchida.destaque { background: linear-gradient(90deg, var(--success), #6ee7b7); }
+
+        .bench-valor {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            color: var(--text-primary);
+            text-align: right;
+        }
+
+        .bench-ausente { font-size: 0.7rem; color: var(--text-muted); font-style: italic; }
+
+        /* ---- Modo comparar ---- */
+        /* Fica no fluxo do cabeçalho, e não absoluto, para não cobrir as datas */
+        .card-compare {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            padding: 3px 7px;
+            font-size: 0.65rem;
+            color: var(--text-muted);
+            cursor: pointer;
+        }
+
+        .card-compare:hover { border-color: var(--accent-primary); color: var(--text-primary); }
+        .card-compare input { accent-color: var(--accent-primary); cursor: pointer; margin: 0; }
+        .model-card.comparando { border-color: var(--accent-primary); }
+
+        .compare-bar {
+            position: fixed;
+            bottom: 18px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 900;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--accent-primary);
+            border-radius: var(--radius-lg);
+            padding: 10px 16px;
+            box-shadow: var(--shadow-lg);
+            max-width: calc(100vw - 32px);
+        }
+
+        .compare-bar[hidden] { display: none; }
+
+        .compare-count { font-size: 0.85rem; color: var(--text-primary); white-space: nowrap; }
+
+        .compare-actions { display: flex; gap: 8px; align-items: center; }
+
+        .compare-open {
+            background: var(--accent-primary);
+            border: 1px solid var(--accent-primary);
+            border-radius: var(--radius-sm);
+            color: #fff;
+            font-family: inherit;
+            font-size: 0.85rem;
+            padding: 8px 14px;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .compare-open:hover { background: var(--accent-secondary); }
+        .compare-open:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .compare-modal { max-width: 1200px; }
+
+        .compare-scroll { overflow-x: auto; }
+
+        .compare-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.82rem;
+        }
+
+        .compare-table th,
+        .compare-table td {
+            padding: 8px 10px;
+            border-bottom: 1px solid var(--border-color);
+            text-align: right;
+            white-space: nowrap;
+        }
+
+        .compare-table th:first-child,
+        .compare-table td:first-child {
+            text-align: left;
+            position: sticky;
+            left: 0;
+            background: var(--bg-secondary);
+            color: var(--text-secondary);
+        }
+
+        .compare-table thead th {
+            color: var(--text-primary);
+            font-weight: 600;
+            border-bottom: 1px solid var(--accent-primary);
+            vertical-align: bottom;
+        }
+
+        .compare-table thead th small {
+            display: block;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.65rem;
+            color: var(--text-muted);
+            font-weight: 400;
+        }
+
+        .compare-table td { font-family: 'JetBrains Mono', monospace; color: var(--text-secondary); }
+        .compare-table td.melhor { color: var(--success); font-weight: 600; }
+        .compare-table td.ausente { color: var(--text-muted); }
+
+        .compare-secao td {
+            background: var(--bg-card);
+            color: var(--text-muted);
+            font-family: inherit;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
         }
 
         .modal-overlay {
@@ -1093,28 +1456,25 @@
             <div id="combosSearch" class="search-content">
                 <div class="combo-filters">
                     <div class="filter-group">
-                        <label for="providerFilter">Provedor</label>
-                        <select class="filter-select" id="providerFilter">
-                            <option value="">Todos os provedores</option>
-                        </select>
+                        <label id="lblProvider">Provedor</label>
+                        <div class="ms" data-filtro="provider"></div>
                     </div>
                     <div class="filter-group">
-                        <label for="modelFilter">Modelo</label>
-                        <select class="filter-select" id="modelFilter">
-                            <option value="">Todos os modelos</option>
-                        </select>
+                        <label id="lblModel">Modelo</label>
+                        <div class="ms" data-filtro="model"></div>
                     </div>
                     <div class="filter-group">
-                        <label for="paramFilter">Parâmetro Suportado</label>
-                        <select class="filter-select" id="paramFilter">
-                            <option value="">Todos os parâmetros</option>
-                        </select>
+                        <label id="lblParam">
+                            Parâmetro Suportado
+                            <span class="modo-toggle" id="paramModoToggle" role="group" aria-label="Combinar parâmetros com E ou OU">
+                                <button type="button" data-modo="ou" class="active">OU</button><button type="button" data-modo="e">E</button>
+                            </span>
+                        </label>
+                        <div class="ms" data-filtro="param"></div>
                     </div>
                     <div class="filter-group">
-                        <label for="expiryFilter">Expiração</label>
-                        <select class="filter-select" id="expiryFilter">
-                            <option value="">Qualquer expiração</option>
-                        </select>
+                        <label id="lblExpiry">Expiração</label>
+                        <div class="ms" data-filtro="expiry"></div>
                     </div>
                 </div>
                 <div class="filters-footer">
@@ -1126,6 +1486,10 @@
 
         <div class="results-header">
             <div class="results-count" id="resultsCount">Carregando modelos...</div>
+            <div class="sort-group">
+                <label for="sortSelect">Ordenar por</label>
+                <select class="filter-select" id="sortSelect"></select>
+            </div>
         </div>
 
         <div id="modelsContainer">
@@ -1133,6 +1497,26 @@
                 <div class="loading-spinner"></div>
                 <div class="loading-text">Carregando modelos da API OpenRouter...</div>
             </div>
+        </div>
+    </div>
+
+    <!-- Barra flutuante do modo comparar: só aparece com modelos marcados -->
+    <div class="compare-bar" id="compareBar" hidden>
+        <span class="compare-count" id="compareCount"></span>
+        <div class="compare-actions">
+            <button type="button" class="clear-filters-btn" id="compareClear">Limpar seleção</button>
+            <button type="button" class="compare-open" id="compareOpen">📊 Comparar</button>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="compareOverlay">
+        <div class="modal-content compare-modal" id="compareContent" role="dialog" aria-modal="true" aria-labelledby="compareTitle">
+            <div class="modal-header">
+                <button class="modal-close" id="compareClose" aria-label="Fechar comparação">✕</button>
+                <h2 class="modal-title" id="compareTitle">Comparar modelos</h2>
+                <p class="modal-subtitle" id="compareSubtitle"></p>
+            </div>
+            <div class="modal-body" id="compareBody"></div>
         </div>
     </div>
 
@@ -1370,92 +1754,323 @@
             document.getElementById('totalProviders').textContent = allProviders.size;
             document.getElementById('totalParams').textContent = allParameters.size;
 
-            // Popula filtros iniciais
-            populateProviderFilter();
-            populateModelFilter(allModels);
-            populateParamFilter(allParameters);
+            // Prepara os controles que dependem dos dados carregados
+            calcularMaxIndices();
+            montarMultiSelects();
+            popularOrdenacao();
 
             refreshResults();
         }
 
-        // Popula o filtro de provedores
-        function populateProviderFilter() {
-            const providerSelect = document.getElementById('providerFilter');
-            providerSelect.innerHTML = '<option value="">Todos os provedores</option>';
-            
-            [...allProviders].sort().forEach(provider => {
-                const option = document.createElement('option');
-                option.value = provider;
-                option.textContent = provider;
-                providerSelect.appendChild(option);
+        // ---------------------------------------------------------------
+        // Estado central dos filtros.
+        // As seleções vivem aqui, e não no DOM: rebuilds do combo nunca
+        // conseguem apagar um filtro ativo por acidente.
+        // ---------------------------------------------------------------
+        const filtros = {
+            provider: new Set(),
+            model: new Set(),
+            param: new Set(),
+            expiry: new Set(),
+            paramModo: 'ou',        // 'ou' = suporta qualquer um | 'e' = suporta todos
+            ordenacao: 'data-desc',
+            comparar: new Set()
+        };
+
+        // ---------------------------------------------------------------
+        // Benchmarks (campo "benchmarks" da API)
+        // artificial_analysis: 3 índices numéricos comparáveis entre modelos.
+        // design_arena: ELO/rank por categoria — granular demais para o card,
+        // aparece no modal e na comparação.
+        // ---------------------------------------------------------------
+        const INDICES_BENCH = [
+            { chave: 'intelligence_index', rotulo: 'Inteligência', curto: 'Intel.' },
+            { chave: 'coding_index',       rotulo: 'Código',       curto: 'Código' },
+            { chave: 'agentic_index',      rotulo: 'Agêntico',     curto: 'Agênt.' }
+        ];
+
+        // Máximo de cada índice em toda a base — a barra do card é proporcional
+        // a ele, para os cards seguirem comparáveis independente do filtro ativo.
+        let maxIndices = {};
+
+        function calcularMaxIndices() {
+            maxIndices = {};
+            INDICES_BENCH.forEach(({ chave }) => {
+                const valores = allModels
+                    .map(m => m.benchmarks && m.benchmarks.artificial_analysis
+                        ? m.benchmarks.artificial_analysis[chave] : undefined)
+                    .filter(v => typeof v === 'number');
+                maxIndices[chave] = valores.length ? Math.max(...valores) : 0;
             });
         }
 
-        // Popula o filtro de modelos (baseado no provedor selecionado)
-        function populateModelFilter(models) {
-            const modelSelect = document.getElementById('modelFilter');
-            const currentValue = modelSelect.value;
-            modelSelect.innerHTML = '<option value="">Todos os modelos</option>';
-            
-            models.forEach(model => {
-                const option = document.createElement('option');
-                option.value = model.id;
-                // Formata a data se disponível
-                const dateStr = model.created ? ` (${formatDate(model.created)})` : '';
-                option.textContent = (model.name || model.id) + dateStr;
-                modelSelect.appendChild(option);
+        function indiceBench(model, chave) {
+            const aa = model.benchmarks && model.benchmarks.artificial_analysis;
+            const v = aa ? aa[chave] : undefined;
+            return typeof v === 'number' ? v : null;
+        }
+
+        // Melhores colocações no Design Arena (rank menor = melhor)
+        function melhoresArena(model, limite = 3) {
+            return ((model.benchmarks && model.benchmarks.design_arena) || [])
+                .filter(b => typeof b.rank === 'number')
+                .sort((a, b) => a.rank - b.rank)
+                .slice(0, limite);
+        }
+
+        // ---------------------------------------------------------------
+        // Ordenação
+        // ---------------------------------------------------------------
+        function precoNumero(model, campo) {
+            const v = parseFloat((model.pricing || {})[campo]);
+            return Number.isFinite(v) && v >= 0 ? v : null;
+        }
+
+        // Comparador que empurra ausentes para o fim, seja qual for a direção
+        function porValor(extrair, desc = true) {
+            return (a, b) => {
+                const va = extrair(a);
+                const vb = extrair(b);
+                if (va === null && vb === null) return 0;
+                if (va === null) return 1;
+                if (vb === null) return -1;
+                return desc ? vb - va : va - vb;
+            };
+        }
+
+        const ORDENACOES = [
+            { valor: 'data-desc',     rotulo: 'Lançamento (mais recente)', cmp: porValor(m => m.created || null, true) },
+            { valor: 'data-asc',      rotulo: 'Lançamento (mais antigo)',  cmp: porValor(m => m.created || null, false) },
+            { valor: 'coding-desc',   rotulo: 'Benchmark: Código',         cmp: porValor(m => indiceBench(m, 'coding_index'), true) },
+            { valor: 'intel-desc',    rotulo: 'Benchmark: Inteligência',   cmp: porValor(m => indiceBench(m, 'intelligence_index'), true) },
+            { valor: 'agentic-desc',  rotulo: 'Benchmark: Agêntico',       cmp: porValor(m => indiceBench(m, 'agentic_index'), true) },
+            { valor: 'entrada-asc',   rotulo: 'Preço de entrada (menor)',  cmp: porValor(m => precoNumero(m, 'prompt'), false) },
+            { valor: 'saida-asc',     rotulo: 'Preço de saída (menor)',    cmp: porValor(m => precoNumero(m, 'completion'), false) },
+            { valor: 'contexto-desc', rotulo: 'Contexto (maior)',          cmp: porValor(m => m.context_length || null, true) },
+            { valor: 'expira-asc',    rotulo: 'Expira antes',              cmp: porValor(m => diasParaFiltro(m), false) },
+            { valor: 'nome-asc',      rotulo: 'Nome (A–Z)',                cmp: (a, b) => getModelDisplayName(a).localeCompare(getModelDisplayName(b), 'pt-BR') }
+        ];
+
+        function popularOrdenacao() {
+            const sel = document.getElementById('sortSelect');
+            sel.innerHTML = ORDENACOES
+                .map(o => '<option value="' + o.valor + '">' + escapeHtml(o.rotulo) + '</option>')
+                .join('');
+            sel.value = filtros.ordenacao;
+        }
+
+        function ordenar(models) {
+            const ord = ORDENACOES.find(o => o.valor === filtros.ordenacao) || ORDENACOES[0];
+            return [...models].sort(ord.cmp);
+        }
+
+        // ---------------------------------------------------------------
+        // Combobox multi-seleção com busca por texto
+        // ---------------------------------------------------------------
+        const MS_CONFIG = {
+            provider: { vazio: 'Todos os provedores', busca: 'Buscar provedor...',  rotulado: 'lblProvider' },
+            model:    { vazio: 'Todos os modelos',    busca: 'Buscar modelo...',    rotulado: 'lblModel' },
+            param:    { vazio: 'Todos os parâmetros', busca: 'Buscar parâmetro...', rotulado: 'lblParam' },
+            expiry:   { vazio: 'Qualquer expiração',  busca: 'Buscar faixa...',     rotulado: 'lblExpiry' }
+        };
+
+        // Monta a casca de cada combo uma única vez
+        function montarMultiSelects() {
+            document.querySelectorAll('.ms').forEach(raiz => {
+                const chave = raiz.dataset.filtro;
+                const cfg = MS_CONFIG[chave];
+                raiz.innerHTML =
+                    '<button type="button" class="ms-btn" aria-expanded="false" aria-haspopup="listbox" aria-labelledby="' + cfg.rotulado + '">' +
+                        '<span class="ms-btn-texto vazio">' + escapeHtml(cfg.vazio) + '</span>' +
+                        '<span class="ms-seta" aria-hidden="true">&#9660;</span>' +
+                    '</button>' +
+                    '<div class="ms-painel" hidden>' +
+                        '<input type="text" class="ms-busca" placeholder="' + escapeHtml(cfg.busca) + '" aria-label="' + escapeHtml(cfg.busca) + '">' +
+                        '<div class="ms-lista" role="listbox" aria-multiselectable="true"></div>' +
+                        '<div class="ms-rodape"><span class="ms-resumo"></span><button type="button" class="ms-limpar">Limpar</button></div>' +
+                    '</div>';
+
+                const btn = raiz.querySelector('.ms-btn');
+                const painel = raiz.querySelector('.ms-painel');
+                const busca = raiz.querySelector('.ms-busca');
+
+                btn.addEventListener('click', () => alternarPainel(raiz));
+                busca.addEventListener('input', () => renderizarOpcoes(raiz));
+
+                busca.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape') { fecharPainel(raiz); btn.focus(); return; }
+                    if (e.key === 'ArrowDown') {
+                        e.preventDefault();
+                        const primeira = painel.querySelector('.ms-opcao input');
+                        if (primeira) primeira.focus();
+                    }
+                });
+
+                raiz.querySelector('.ms-limpar').addEventListener('click', () => {
+                    filtros[chave].clear();
+                    refreshResults();
+                    busca.focus();
+                });
+
+                painel.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape') { fecharPainel(raiz); btn.focus(); }
+                });
             });
 
-            // Mantém a seleção anterior se ainda existir
-            if (currentValue && models.some(m => m.id === currentValue)) {
-                modelSelect.value = currentValue;
+            // Clique fora fecha qualquer painel aberto
+            document.addEventListener('click', (e) => {
+                document.querySelectorAll('.ms[data-aberto="1"]').forEach(raiz => {
+                    if (!raiz.contains(e.target)) fecharPainel(raiz);
+                });
+            });
+        }
+
+        function alternarPainel(raiz) {
+            if (raiz.dataset.aberto === '1') { fecharPainel(raiz); return; }
+            document.querySelectorAll('.ms[data-aberto="1"]').forEach(fecharPainel);
+            raiz.dataset.aberto = '1';
+            raiz.querySelector('.ms-painel').hidden = false;
+            raiz.querySelector('.ms-btn').setAttribute('aria-expanded', 'true');
+            renderizarOpcoes(raiz);
+            raiz.querySelector('.ms-busca').focus();
+        }
+
+        function fecharPainel(raiz) {
+            delete raiz.dataset.aberto;
+            raiz.querySelector('.ms-painel').hidden = true;
+            raiz.querySelector('.ms-btn').setAttribute('aria-expanded', 'false');
+        }
+
+        // Opções de um filtro, com a contagem calculada no escopo dos DEMAIS
+        // filtros (busca facetada): o número exibido é o que a seleção entrega.
+        function opcoesDoFiltro(chave) {
+            const escopo = getFilteredModels(chave);
+
+            if (chave === 'provider') {
+                const contagem = new Map();
+                escopo.forEach(m => {
+                    const p = getProvider(m);
+                    contagem.set(p, (contagem.get(p) || 0) + 1);
+                });
+                return [...allProviders].sort().map(p => ({
+                    valor: p, rotulo: p, contagem: contagem.get(p) || 0
+                }));
+            }
+
+            if (chave === 'model') {
+                const visiveis = new Set(escopo.map(m => m.id));
+                return allModels.map(m => ({
+                    valor: m.id,
+                    rotulo: getModelDisplayName(m),
+                    detalhe: m.id,
+                    contagem: visiveis.has(m.id) ? 1 : 0
+                }));
+            }
+
+            if (chave === 'param') {
+                const contagem = new Map();
+                escopo.forEach(m => (m.supported_parameters || []).forEach(p => {
+                    contagem.set(p, (contagem.get(p) || 0) + 1);
+                }));
+                return [...allParameters].sort().map(p => ({
+                    valor: p, rotulo: p, contagem: contagem.get(p) || 0
+                }));
+            }
+
+            return FAIXAS_EXPIRACAO.map(f => ({
+                valor: f.valor,
+                rotulo: f.rotulo,
+                contagem: escopo.filter(m => f.teste(diasParaFiltro(m))).length
+            }));
+        }
+
+        function renderizarOpcoes(raiz) {
+            const chave = raiz.dataset.filtro;
+            const lista = raiz.querySelector('.ms-lista');
+            const termo = raiz.querySelector('.ms-busca').value.toLowerCase().trim();
+            const selecionados = filtros[chave];
+
+            const opcoes = opcoesDoFiltro(chave).filter(o =>
+                !termo ||
+                o.rotulo.toLowerCase().includes(termo) ||
+                (o.detalhe && o.detalhe.toLowerCase().includes(termo))
+            );
+
+            if (!opcoes.length) {
+                lista.innerHTML = '<div class="ms-vazio">Nada encontrado para "' + escapeHtml(termo) + '"</div>';
+            } else {
+                lista.innerHTML = opcoes.map(o => {
+                    const marcado = selecionados.has(o.valor);
+                    // Opção zerada é só esmaecida, nunca desabilitada: precisa
+                    // continuar clicável para o usuário desmarcar o que zerou.
+                    const zerada = o.contagem === 0 && !marcado ? ' zerada' : '';
+                    const contagem = chave === 'model' ? '' :
+                        '<span class="ms-opcao-contagem">' + o.contagem + '</span>';
+                    return '<label class="ms-opcao' + zerada + '" role="option" aria-selected="' + marcado + '">' +
+                        '<input type="checkbox" value="' + escapeHtml(o.valor) + '"' + (marcado ? ' checked' : '') + '>' +
+                        '<span class="ms-opcao-rotulo" title="' + escapeHtml(o.detalhe || o.rotulo) + '">' + escapeHtml(o.rotulo) + '</span>' +
+                        contagem +
+                    '</label>';
+                }).join('');
+            }
+
+            lista.querySelectorAll('input[type="checkbox"]').forEach(input => {
+                input.addEventListener('change', () => {
+                    if (input.checked) selecionados.add(input.value);
+                    else selecionados.delete(input.value);
+                    refreshResults();
+                });
+            });
+
+            const resumo = raiz.querySelector('.ms-resumo');
+            resumo.textContent = selecionados.size
+                ? selecionados.size + ' selecionado' + (selecionados.size > 1 ? 's' : '')
+                : 'nenhum selecionado';
+        }
+
+        // Texto do botão: reflete a seleção mesmo com o painel fechado
+        function atualizarBotaoMS(raiz) {
+            const chave = raiz.dataset.filtro;
+            const selecionados = [...filtros[chave]];
+            const alvo = raiz.querySelector('.ms-btn-texto');
+            const btn = raiz.querySelector('.ms-btn');
+            const badgeAntigo = btn.querySelector('.ms-badge');
+            if (badgeAntigo) badgeAntigo.remove();
+
+            if (!selecionados.length) {
+                alvo.textContent = MS_CONFIG[chave].vazio;
+                alvo.classList.add('vazio');
+                return;
+            }
+
+            alvo.classList.remove('vazio');
+            alvo.textContent = rotuloDoValor(chave, selecionados[0]);
+
+            if (selecionados.length > 1) {
+                const badge = document.createElement('span');
+                badge.className = 'ms-badge';
+                badge.textContent = '+' + (selecionados.length - 1);
+                btn.insertBefore(badge, btn.querySelector('.ms-seta'));
             }
         }
 
-        // Popula o filtro de expiração mostrando quantos modelos caem em cada faixa.
-        // Faixa vazia continua listada (e desabilitada) para deixar claro que a
-        // opção existe e que hoje simplesmente não há modelo naquela situação.
-        function populateExpiryFilter(models) {
-            const select = document.getElementById('expiryFilter');
-            const valorAtual = select.value;
-            select.innerHTML = `<option value="">Qualquer expiração (${models.length})</option>`;
-
-            FAIXAS_EXPIRACAO.forEach(faixa => {
-                const total = models.filter(m => faixa.teste(diasParaFiltro(m))).length;
-                const option = document.createElement('option');
-                option.value = faixa.valor;
-                option.textContent = `${faixa.rotulo} (${total})`;
-                // Faixa vazia é desabilitada — menos quando está selecionada agora:
-                // desabilitá-la faria o combo cair para "" e limpar o filtro sozinho.
-                option.disabled = total === 0 && faixa.valor !== valorAtual;
-                select.appendChild(option);
-            });
-
-            // Restaura a seleção sempre que a opção existir, mesmo com contagem zero.
-            // Com o filtro ativo e sem resultados, o certo é mostrar "nenhum modelo
-            // encontrado" — e não resultados de um filtro que se apagou em silêncio.
-            if (valorAtual && [...select.options].some(o => o.value === valorAtual)) {
-                select.value = valorAtual;
+        function rotuloDoValor(chave, valor) {
+            if (chave === 'model') {
+                const m = allModels.find(x => x.id === valor);
+                return m ? getModelDisplayName(m) : valor;
             }
+            if (chave === 'expiry') {
+                const f = FAIXAS_EXPIRACAO.find(x => x.valor === valor);
+                return f ? f.rotulo : valor;
+            }
+            return valor;
         }
 
-        // Popula o filtro de parâmetros (baseado nos modelos disponíveis)
-        function populateParamFilter(params) {
-            const paramSelect = document.getElementById('paramFilter');
-            const currentValue = paramSelect.value;
-            paramSelect.innerHTML = '<option value="">Todos os parâmetros</option>';
-            
-            [...params].sort().forEach(param => {
-                const option = document.createElement('option');
-                option.value = param;
-                option.textContent = param;
-                paramSelect.appendChild(option);
+        function atualizarTodosMS() {
+            document.querySelectorAll('.ms').forEach(raiz => {
+                atualizarBotaoMS(raiz);
+                if (raiz.dataset.aberto === '1') renderizarOpcoes(raiz);
             });
-
-            // Mantém a seleção anterior se ainda existir
-            if (currentValue && params.has(currentValue)) {
-                paramSelect.value = currentValue;
-            }
         }
 
         // Configura event listeners
@@ -1484,61 +2099,58 @@
                 refreshResults();
             });
 
-            // Filtro de provedor (interdependente)
-            document.getElementById('providerFilter').addEventListener('change', (e) => {
-                const selectedProvider = e.target.value;
-                const availableModels = selectedProvider
-                    ? allModels.filter(m => getProvider(m) === selectedProvider)
-                    : allModels;
-
-                // Atualiza combos de modelos e parâmetros para o provedor
-                // (a seleção anterior é mantida quando ainda válida)
-                populateModelFilter(availableModels);
-                populateParamFilter(collectParams(availableModels));
-
+            // Alternador E / OU do filtro de parâmetros
+            document.getElementById('paramModoToggle').addEventListener('click', (e) => {
+                const btn = e.target.closest('button[data-modo]');
+                if (!btn) return;
+                filtros.paramModo = btn.dataset.modo;
+                document.querySelectorAll('#paramModoToggle button').forEach(b => {
+                    b.classList.toggle('active', b.dataset.modo === filtros.paramModo);
+                });
                 refreshResults();
             });
 
-            // Filtro de modelo (interdependente)
-            document.getElementById('modelFilter').addEventListener('change', (e) => {
-                const selectedModel = allModels.find(m => m.id === e.target.value);
-
-                if (selectedModel) {
-                    // Atualiza provedor automaticamente
-                    document.getElementById('providerFilter').value = getProvider(selectedModel);
-                    populateParamFilter(new Set(selectedModel.supported_parameters || []));
-                } else {
-                    // "Todos os modelos": restaura os parâmetros do provedor selecionado (ou de todos)
-                    const providerVal = document.getElementById('providerFilter').value;
-                    const availableModels = providerVal
-                        ? allModels.filter(m => getProvider(m) === providerVal)
-                        : allModels;
-                    populateParamFilter(collectParams(availableModels));
-                }
-
+            // Ordenação
+            document.getElementById('sortSelect').addEventListener('change', (e) => {
+                filtros.ordenacao = e.target.value;
                 refreshResults();
             });
-
-            // Filtro de parâmetro
-            document.getElementById('paramFilter').addEventListener('change', refreshResults);
-
-            // Filtro de expiração
-            document.getElementById('expiryFilter').addEventListener('change', refreshResults);
 
             // Limpar filtros
             document.getElementById('clearFilters').addEventListener('click', () => {
-                document.getElementById('providerFilter').value = '';
-                document.getElementById('modelFilter').value = '';
-                document.getElementById('paramFilter').value = '';
-                document.getElementById('expiryFilter').value = '';
-
-                // Restaura todos os combos
-                populateModelFilter(allModels);
-                populateParamFilter(allParameters);
-
+                ['provider', 'model', 'param', 'expiry'].forEach(k => filtros[k].clear());
+                document.querySelectorAll('.ms-busca').forEach(i => { i.value = ''; });
                 refreshResults();
             });
 
+            // Modo comparar: marcar/desmarcar pelo card
+            document.getElementById('modelsContainer').addEventListener('change', (e) => {
+                const input = e.target.closest('.card-compare input');
+                if (!input) return;
+                const id = input.closest('.model-card').dataset.modelId;
+                if (input.checked) filtros.comparar.add(id);
+                else filtros.comparar.delete(id);
+                input.closest('.model-card').classList.toggle('comparando', input.checked);
+                atualizarBarraComparar();
+            });
+
+            document.getElementById('compareClear').addEventListener('click', () => {
+                filtros.comparar.clear();
+                document.querySelectorAll('.card-compare input').forEach(i => { i.checked = false; });
+                document.querySelectorAll('.model-card.comparando').forEach(c => c.classList.remove('comparando'));
+                atualizarBarraComparar();
+            });
+
+            document.getElementById('compareOpen').addEventListener('click', abrirComparacao);
+            document.getElementById('compareClose').addEventListener('click', fecharComparacao);
+            document.getElementById('compareOverlay').addEventListener('click', (e) => {
+                if (e.target === document.getElementById('compareOverlay')) fecharComparacao();
+            });
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && document.getElementById('compareOverlay').classList.contains('active')) {
+                    fecharComparacao();
+                }
+            });
             // Abertura do modal via delegação (um listener para todos os cards)
             document.getElementById('modelsContainer').addEventListener('click', (e) => {
                 const card = e.target.closest('.model-card');
@@ -1602,34 +2214,40 @@
             header.setAttribute('aria-expanded', item.classList.contains('expanded'));
         }
 
-        // Coleta os parâmetros suportados por um conjunto de modelos
-        function collectParams(models) {
-            const params = new Set();
-            models.forEach(model => {
-                (model.supported_parameters || []).forEach(p => params.add(p));
-            });
-            return params;
-        }
-
         // Pipeline único de filtros: texto + provedor + modelo + parâmetro + expiração.
-        // "ignorar" permite calcular o escopo de um combo sem aplicar ele próprio —
-        // é assim que as contagens exibidas passam a corresponder ao resultado real
-        // de escolher cada opção (comportamento de busca facetada).
+        // "ignorar" exclui um filtro do cálculo, para as contagens de cada combo
+        // refletirem o que aquela seleção realmente entrega (busca facetada).
         function getFilteredModels(ignorar = null) {
             const q = document.getElementById('textSearchInput').value.toLowerCase().trim();
-            const providerVal = document.getElementById('providerFilter').value;
-            const modelVal = document.getElementById('modelFilter').value;
-            const paramVal = document.getElementById('paramFilter').value;
-            const expiryVal = document.getElementById('expiryFilter').value;
-            const faixaExpiracao = ignorar === 'expiracao'
-                ? null
-                : FAIXAS_EXPIRACAO.find(f => f.valor === expiryVal);
+
+            const provedores = ignorar === 'provider' ? null : filtros.provider;
+            const modelos    = ignorar === 'model'    ? null : filtros.model;
+            const parametros = ignorar === 'param'    ? null : filtros.param;
+            const expiracoes = ignorar === 'expiry'   ? null : filtros.expiry;
 
             return allModels.filter(model => {
-                if (providerVal && getProvider(model) !== providerVal) return false;
-                if (modelVal && model.id !== modelVal) return false;
-                if (paramVal && !(model.supported_parameters || []).includes(paramVal)) return false;
-                if (faixaExpiracao && !faixaExpiracao.teste(diasParaFiltro(model))) return false;
+                // Provedor e modelo são sempre OU: um modelo tem um provedor só
+                if (provedores && provedores.size && !provedores.has(getProvider(model))) return false;
+                if (modelos && modelos.size && !modelos.has(model.id)) return false;
+
+                if (parametros && parametros.size) {
+                    const suportados = new Set(model.supported_parameters || []);
+                    const escolhidos = [...parametros];
+                    const atende = filtros.paramModo === 'e'
+                        ? escolhidos.every(p => suportados.has(p))   // suporta TODOS
+                        : escolhidos.some(p => suportados.has(p));   // suporta QUALQUER UM
+                    if (!atende) return false;
+                }
+
+                // Faixas de expiração combinam em OU (são cumulativas entre si)
+                if (expiracoes && expiracoes.size) {
+                    const dias = diasParaFiltro(model);
+                    const atende = [...expiracoes].some(v => {
+                        const faixa = FAIXAS_EXPIRACAO.find(f => f.valor === v);
+                        return faixa && faixa.teste(dias);
+                    });
+                    if (!atende) return false;
+                }
 
                 if (q) {
                     const matchesText =
@@ -1645,45 +2263,140 @@
             });
         }
 
-        // Recalcula e re-renderiza os resultados a partir do estado atual dos filtros.
-        // As contagens de expiração são refeitas aqui, e não nos handlers individuais,
-        // para nunca prometerem um número que a seleção não entrega.
+        // Recalcula e re-renderiza tudo a partir do estado atual dos filtros
         function refreshResults() {
-            populateExpiryFilter(getFilteredModels('expiracao'));
-            filteredModels = getFilteredModels();
+            filteredModels = ordenar(getFilteredModels());
             renderModels(filteredModels);
+            atualizarTodosMS();
             updateActiveFiltersInfo();
+            atualizarBarraComparar();
         }
 
-        // Atualiza informação de filtros ativos
+        // Resumo dos filtros ativos
         function updateActiveFiltersInfo() {
             const textVal = document.getElementById('textSearchInput').value.trim();
-            const providerVal = document.getElementById('providerFilter').value;
-            const modelVal = document.getElementById('modelFilter').value;
-            const paramVal = document.getElementById('paramFilter').value;
-
             const activeFilters = [];
-            if (textVal) activeFilters.push(`Texto: <strong>${escapeHtml(textVal)}</strong>`);
-            if (providerVal) activeFilters.push(`Provedor: <strong>${escapeHtml(providerVal)}</strong>`);
-            if (modelVal) {
-                const model = allModels.find(m => m.id === modelVal);
-                const label = model ? getModelDisplayName(model) : modelVal;
-                activeFilters.push(`Modelo: <strong>${escapeHtml(label)}</strong>`);
-            }
-            if (paramVal) activeFilters.push(`Parâmetro: <strong>${escapeHtml(paramVal)}</strong>`);
 
-            const expiryVal = document.getElementById('expiryFilter').value;
-            const faixaExpiracao = FAIXAS_EXPIRACAO.find(f => f.valor === expiryVal);
-            if (faixaExpiracao) activeFilters.push(`Expiração: <strong>${escapeHtml(faixaExpiracao.rotulo)}</strong>`);
+            if (textVal) activeFilters.push('Texto: <strong>' + escapeHtml(textVal) + '</strong>');
+
+            const resumo = (chave, nome) => {
+                const vals = [...filtros[chave]];
+                if (!vals.length) return;
+                const primeiro = escapeHtml(rotuloDoValor(chave, vals[0]));
+                const extra = vals.length > 1 ? ' +' + (vals.length - 1) : '';
+                activeFilters.push(nome + ': <strong>' + primeiro + extra + '</strong>');
+            };
+
+            resumo('provider', 'Provedor');
+            resumo('model', 'Modelo');
+
+            if (filtros.param.size) {
+                const vals = [...filtros.param];
+                const juncao = filtros.paramModo === 'e' ? ' E ' : ' OU ';
+                activeFilters.push('Parâmetro: <strong>' + escapeHtml(vals.join(juncao)) + '</strong>');
+            }
+
+            resumo('expiry', 'Expiração');
 
             const infoEl = document.getElementById('activeFiltersInfo');
-            if (activeFilters.length > 0) {
-                infoEl.innerHTML = '🔍 ' + activeFilters.join(' • ');
-            } else {
-                infoEl.innerHTML = '';
-            }
+            infoEl.innerHTML = activeFilters.length ? '🔍 ' + activeFilters.join(' • ') : '';
         }
 
+        // ---------------------------------------------------------------
+        // Modo comparar
+        // ---------------------------------------------------------------
+        function atualizarBarraComparar() {
+            const barra = document.getElementById('compareBar');
+            const total = filtros.comparar.size;
+            barra.hidden = total === 0;
+            document.getElementById('compareCount').textContent =
+                total + ' modelo' + (total > 1 ? 's' : '') + ' para comparar';
+            document.getElementById('compareOpen').disabled = total < 2;
+        }
+
+        function modelosEmComparacao() {
+            return [...filtros.comparar]
+                .map(id => allModels.find(m => m.id === id))
+                .filter(Boolean);
+        }
+
+        // Uma linha da tabela: destaca a(s) melhor(es) célula(s) da linha
+        function linhaComparacao(rotulo, modelos, extrair, formatar, maiorEhMelhor = true) {
+            const valores = modelos.map(extrair);
+            const numericos = valores.filter(v => typeof v === 'number');
+            const melhor = numericos.length
+                ? (maiorEhMelhor ? Math.max(...numericos) : Math.min(...numericos))
+                : null;
+
+            const celulas = valores.map(v => {
+                if (v === null || v === undefined) return '<td class="ausente">—</td>';
+                const destaque = numericos.length > 1 && v === melhor ? ' class="melhor"' : '';
+                return '<td' + destaque + '>' + escapeHtml(formatar(v)) + '</td>';
+            }).join('');
+
+            return '<tr><td>' + escapeHtml(rotulo) + '</td>' + celulas + '</tr>';
+        }
+
+        function abrirComparacao() {
+            const modelos = modelosEmComparacao();
+            if (modelos.length < 2) return;
+
+            document.getElementById('compareSubtitle').textContent =
+                modelos.length + ' modelos lado a lado — o melhor de cada linha aparece em verde';
+
+            const cabecalho = '<tr><th></th>' + modelos.map(m =>
+                '<th>' + escapeHtml(getModelDisplayName(m)) + '<small>' + escapeHtml(m.id) + '</small></th>'
+            ).join('') + '</tr>';
+
+            const linhas = [];
+
+            linhas.push('<tr class="compare-secao"><td colspan="' + (modelos.length + 1) + '">Benchmarks — Artificial Analysis</td></tr>');
+            INDICES_BENCH.forEach(({ chave, rotulo }) => {
+                linhas.push(linhaComparacao(rotulo, modelos, m => indiceBench(m, chave), v => v.toFixed(1)));
+            });
+
+            // Design Arena: só as categorias em que ao menos um dos modelos pontua
+            const categorias = new Set();
+            modelos.forEach(m => ((m.benchmarks && m.benchmarks.design_arena) || [])
+                .forEach(b => categorias.add(b.category)));
+
+            if (categorias.size) {
+                linhas.push('<tr class="compare-secao"><td colspan="' + (modelos.length + 1) + '">Design Arena — colocação (ELO)</td></tr>');
+                [...categorias].sort().forEach(cat => {
+                    linhas.push(linhaComparacao(
+                        cat,
+                        modelos,
+                        m => {
+                            const e = ((m.benchmarks && m.benchmarks.design_arena) || [])
+                                .find(b => b.category === cat);
+                            return e && typeof e.rank === 'number' ? e.rank : null;
+                        },
+                        v => '#' + v,
+                        false   // rank menor é melhor
+                    ));
+                });
+            }
+
+            linhas.push('<tr class="compare-secao"><td colspan="' + (modelos.length + 1) + '">Preços e capacidade</td></tr>');
+            linhas.push(linhaComparacao('Entrada / 1M', modelos, m => precoNumero(m, 'prompt'), v => '$' + (v * 1e6).toFixed(2), false));
+            linhas.push(linhaComparacao('Saída / 1M', modelos, m => precoNumero(m, 'completion'), v => '$' + (v * 1e6).toFixed(2), false));
+            linhas.push(linhaComparacao('Cache leitura / 1M', modelos, m => precoNumero(m, 'input_cache_read'), v => '$' + (v * 1e6).toFixed(2), false));
+            linhas.push(linhaComparacao('Contexto', modelos, m => m.context_length || null, v => formatContext(v)));
+            linhas.push(linhaComparacao('Parâmetros suportados', modelos, m => (m.supported_parameters || []).length, v => String(v)));
+
+            document.getElementById('compareBody').innerHTML =
+                '<div class="compare-scroll"><table class="compare-table"><thead>' +
+                cabecalho + '</thead><tbody>' + linhas.join('') + '</tbody></table></div>';
+
+            document.getElementById('compareOverlay').classList.add('active');
+            document.body.style.overflow = 'hidden';
+            document.getElementById('compareClose').focus();
+        }
+
+        function fecharComparacao() {
+            document.getElementById('compareOverlay').classList.remove('active');
+            document.body.style.overflow = '';
+        }
         // Renderiza os cards de modelos
         function renderModels(models) {
             const container = document.getElementById('modelsContainer');
@@ -1826,10 +2539,14 @@
                    </div></div>`;
 
             return `
-                <div class="model-card" data-model-id="${escapeHtml(model.id)}">
+                <div class="model-card${filtros.comparar.has(model.id) ? ' comparando' : ''}" data-model-id="${escapeHtml(model.id)}">
                     <div class="model-header">
                         <span class="model-provider">${escapeHtml(provider)}</span>
                         <span class="model-dates">
+                            <label class="card-compare" title="Marcar para comparar">
+                                <input type="checkbox"${filtros.comparar.has(model.id) ? ' checked' : ''} aria-label="Comparar ${escapeHtml(getModelDisplayName(model))}">
+                                comparar
+                            </label>
                             ${dateStr ? `<span class="model-date">📅 ${dateStr}</span>` : ''}
                             ${expiraLabel ? `<span class="model-expiry ${expiraClasse}" title="${escapeHtml(expiraTitulo)}">⏳ ${escapeHtml(expiraLabel)}</span>` : ''}
                         </span>
@@ -1841,6 +2558,123 @@
                         <span class="meta-tag modality">🔄 ${escapeHtml(modality)}</span>
                     </div>
                     ${pricingBlock}
+                    ${renderBenchCard(model)}
+                </div>
+            `;
+        }
+
+        // Benchmarks no modal: os 3 índices + a tabela completa do Design Arena,
+        // que é granular demais para caber no card.
+        function renderBenchModal(model) {
+            const bench = model.benchmarks || {};
+            const indices = INDICES_BENCH.map(i => ({ ...i, valor: indiceBench(model, i.chave) }));
+            const arena = (bench.design_arena || []).slice()
+                .sort((a, b) => (a.rank || 999) - (b.rank || 999));
+
+            if (indices.every(i => i.valor === null) && !arena.length) {
+                return `
+                    <div class="detail-section">
+                        <div class="section-title">Benchmarks</div>
+                        <p style="color: var(--text-muted);">A API não fornece dados de benchmark para este modelo.</p>
+                    </div>
+                `;
+            }
+
+            const blocoIndices = indices.some(i => i.valor !== null) ? `
+                <div class="pricing-group">
+                    <div class="pricing-group-title">📊 Artificial Analysis</div>
+                    <div class="info-grid">
+                        ${indices.map(i => `
+                            <div class="info-item">
+                                <div class="info-label">${escapeHtml(i.rotulo)}</div>
+                                <div class="info-value" style="color: var(--success)">
+                                    ${i.valor === null ? 'N/A' : i.valor.toFixed(1)}
+                                    ${i.valor !== null ? `<span class="price-suffix">de ${(maxIndices[i.chave] || 0).toFixed(1)} (máx. do mercado)</span>` : ''}
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            ` : '';
+
+            const blocoArena = arena.length ? `
+                <div class="pricing-group">
+                    <div class="pricing-group-title">🏆 Design Arena (${arena.length} categorias)</div>
+                    <div class="compare-scroll">
+                        <table class="compare-table">
+                            <thead><tr><th>Categoria</th><th>Colocação</th><th>ELO</th><th>Vitórias</th></tr></thead>
+                            <tbody>
+                                ${arena.map(b => `
+                                    <tr>
+                                        <td>${escapeHtml(b.category || '—')}</td>
+                                        <td>${typeof b.rank === 'number' ? '#' + b.rank : '—'}</td>
+                                        <td>${typeof b.elo === 'number' ? Math.round(b.elo) : '—'}</td>
+                                        <td>${typeof b.win_rate === 'number' ? b.win_rate.toFixed(1) + '%' : '—'}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            ` : '';
+
+            return `
+                <div class="detail-section">
+                    <div class="section-title">Benchmarks</div>
+                    <p class="pricing-note">Dados de terceiros fornecidos pela API da OpenRouter.</p>
+                    ${blocoIndices}
+                    ${blocoArena}
+                </div>
+            `;
+        }
+
+        // Bloco de benchmarks do card: os 3 índices do Artificial Analysis,
+        // cada um como barra proporcional ao maior valor de toda a base — é o
+        // que permite comparar cards batendo o olho, sem abrir nada.
+        function renderBenchCard(model) {
+            const valores = INDICES_BENCH.map(i => ({ ...i, valor: indiceBench(model, i.chave) }));
+
+            if (valores.every(v => v.valor === null)) {
+                return `
+                    <div class="bench-block">
+                        <div class="bench-title"><span>Benchmarks</span></div>
+                        <div class="bench-ausente">Sem dados de benchmark na API</div>
+                    </div>
+                `;
+            }
+
+            // Destaca a barra do critério que está ordenando a lista
+            const chaveOrdenada = { 'coding-desc': 'coding_index', 'intel-desc': 'intelligence_index', 'agentic-desc': 'agentic_index' }[filtros.ordenacao];
+
+            const linhas = valores.map(v => {
+                if (v.valor === null) {
+                    return `
+                        <div class="bench-row">
+                            <span class="bench-nome">${escapeHtml(v.rotulo)}</span>
+                            <div class="bench-barra"></div>
+                            <span class="bench-valor">—</span>
+                        </div>
+                    `;
+                }
+                const max = maxIndices[v.chave] || 1;
+                const pct = Math.max(2, Math.round((v.valor / max) * 100));
+                const destaque = chaveOrdenada === v.chave ? ' destaque' : '';
+                return `
+                    <div class="bench-row">
+                        <span class="bench-nome">${escapeHtml(v.rotulo)}</span>
+                        <div class="bench-barra"><div class="bench-preenchida${destaque}" style="width:${pct}%"></div></div>
+                        <span class="bench-valor">${v.valor.toFixed(1)}</span>
+                    </div>
+                `;
+            }).join('');
+
+            const arena = melhoresArena(model, 1)[0];
+            const topo = arena ? `<span title="Melhor colocação no Design Arena">🏆 ${escapeHtml(arena.category)} #${arena.rank}</span>` : '';
+
+            return `
+                <div class="bench-block">
+                    <div class="bench-title"><span>Benchmarks</span>${topo}</div>
+                    ${linhas}
                 </div>
             `;
         }
@@ -2160,6 +2994,8 @@
                         </div>
                     </div>
                 </div>
+
+                ${renderBenchModal(model)}
 
                 <div class="detail-section">
                     <div class="section-title">Preços (USD)</div>

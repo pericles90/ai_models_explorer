@@ -18,6 +18,10 @@ Uma aplicação web que exibe informações em tempo real sobre centenas de mode
 - 💰 **Preços completos** — entrada, saída, cache (leitura/escrita 5 min/1 hora), multimodal e extras
 - ⏳ **Ciclo de vida** — data de lançamento, data de expiração (destacada quando próxima) e knowledge cutoff
 - 🗓️ **Filtro por expiração** — encontre modelos já expirados ou prestes a expirar (7, 30, 90 dias ou 1 ano)
+- ☑️ **Filtros multi-seleção com busca** — digite para localizar e marque vários provedores, modelos, parâmetros ou faixas
+- 📊 **Benchmarks no card** — índices de Inteligência, Código e Agêntico em barras comparáveis entre modelos
+- ↕️ **Ordenação** — por benchmark, preço, contexto, data de lançamento ou proximidade da expiração
+- ⚖️ **Modo comparar** — selecione modelos e veja-os lado a lado, com o melhor de cada linha destacado
 - 📋 **Detalhes completos** de cada modelo em modal interativo
 - 🔧 **Documentação de parâmetros** com explicações e exemplos
 - 📱 **Design responsivo** para desktop, tablet e mobile
@@ -65,6 +69,49 @@ O arquivo pode ser embarcado diretamente em uma WebView Android:
 ```kotlin
 webView.loadUrl("file:///android_asset/index.html")
 ```
+
+## 📊 Benchmarks
+
+Vêm do campo `benchmarks` da API — *"third-party benchmark rankings for this model"*.
+Duas fontes, com coberturas diferentes:
+
+| Fonte | Modelos | Conteúdo |
+|-------|--------:|----------|
+| `artificial_analysis` | 117 | Índices de Inteligência, Código e Agêntico |
+| `design_arena` | 168 | ELO, win rate e colocação em 25 categorias de design |
+
+No card aparecem os 3 índices, cada um como barra proporcional ao **maior valor
+de toda a base** — por isso os cards continuam comparáveis entre si mesmo com
+filtros aplicados. A barra do critério em uso na ordenação fica destacada em
+verde. O Design Arena completo fica no modal e na comparação.
+
+> **Não existe benchmark de SRE.** Buscamos por `sre`, `ops`, `devops`, `infra`
+> e `reliability` nas 25 categorias e nos 3 índices: nenhuma ocorrência. `coding`
+> existe; as demais categorias são todas de design/frontend. **175 dos 343
+> modelos não têm benchmark algum** e exibem o aviso correspondente.
+
+### Modo comparar
+
+Marque **2 ou mais** modelos pela caixa no card e abra a comparação: uma tabela
+lado a lado com os 3 índices, as categorias do Design Arena em que ao menos um
+dos modelos pontua, e preços/contexto. O melhor valor de cada linha aparece em
+verde — considerando que em `rank` do Arena e em preço, **menor é melhor**.
+
+## 🔎 Filtros
+
+Os quatro filtros aceitam **múltipla seleção** e **busca por texto** dentro do
+combo. As contagens ao lado de cada opção são calculadas no escopo dos *demais*
+filtros (busca facetada), então o número exibido é o que aquela seleção entrega.
+
+| Filtro | Combinação |
+|--------|-----------|
+| Provedor | OU — um modelo pertence a um provedor só |
+| Modelo | OU |
+| Parâmetro | **E ou OU**, alternável no rótulo do filtro |
+| Expiração | OU — as faixas já são cumulativas entre si |
+
+O alternador **E / OU** dos parâmetros muda bastante o resultado: marcar `tools`
+e `reasoning` devolve 296 modelos em OU e 191 em E.
 
 ## 🗓️ Filtro por Expiração
 
