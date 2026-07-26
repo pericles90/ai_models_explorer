@@ -1,0 +1,146 @@
+{
+  "$schema": "./params.pt-BR.schema.md",
+  "_leiame": "Camada curada em português, aplicada por cima do que vem da spec OpenAPI da OpenRouter (scripts/sync-params.mjs). Só \"description\" (HTML confiável), \"example\" e \"default\" são sobrepostos; tipo, enum e demais metadados sempre vêm da spec. Parâmetro sem entrada aqui usa o texto da spec.",
+  "params": {
+    "frequency_penalty": {
+      "description": "<strong>Penaliza tokens com base em sua frequência no texto.</strong>\n\n<p>Reduz a repetição penalizando tokens que já apareceram, proporcionalmente à frequência:</p>\n\n<ul>\n<li><strong>Valores positivos (0.1 - 2.0):</strong> Reduz repetições, incentiva vocabulário diverso</li>\n<li><strong>Valor 0:</strong> Sem penalidade</li>\n<li><strong>Valores negativos:</strong> Aumenta a probabilidade de repetir palavras (raramente usado)</li>\n</ul>\n\n<p>A penalidade aumenta a cada vez que um token aparece, tornando-se mais forte quanto mais frequente for o token.</p>",
+      "example": "\"frequency_penalty\": 0.5",
+      "default": "0"
+    },
+    "include_reasoning": {
+      "description": "<strong>Inclui (ou não) os tokens de raciocínio na resposta.</strong>\n\n<p>Campo da camada da OpenRouter — não aparece na spec OpenAPI, mas é anunciado por 213 modelos.</p>\n\n<p>Controla apenas a <em>visibilidade</em> do raciocínio: o modelo raciocina e você é cobrado por esses tokens de qualquer forma. Forma moderna equivalente: <code>reasoning.exclude</code>.</p>",
+      "example": "\"include_reasoning\": true"
+    },
+    "logit_bias": {
+      "description": "<strong>Ajuste manual de probabilidades de tokens específicos.</strong>\n\n<p>Permite aumentar ou diminuir a probabilidade de tokens específicos usando seus IDs:</p>\n\n<ul>\n<li><strong>Valores de -100 a 100:</strong> Negativos diminuem probabilidade, positivos aumentam</li>\n<li><strong>-100:</strong> Praticamente bane o token</li>\n<li><strong>100:</strong> Força o uso exclusivo do token</li>\n</ul>\n\n<p><strong>Uso típico:</strong> Evitar que o modelo mencione certas palavras ou forçar uso de termos específicos.</p>\n\n<p><em>Nota:</em> Requer conhecimento dos IDs de tokens do tokenizador específico do modelo.</p>",
+      "example": "\"logit_bias\": {\"50256\": -100}",
+      "default": "null"
+    },
+    "logprobs": {
+      "description": "<strong>Retorna log-probabilidades dos tokens gerados.</strong>\n\n<p>Quando ativado, a resposta inclui informações sobre a probabilidade de cada token:</p>\n\n<ul>\n<li>Útil para análise de confiança do modelo</li>\n<li>Permite entender quais alternativas o modelo considerou</li>\n<li>Importante para calibração e debugging de prompts</li>\n</ul>\n\n<p>Combina bem com <code>top_logprobs</code> para ver alternativas.</p>",
+      "example": "\"logprobs\": true",
+      "default": "false"
+    },
+    "max_completion_tokens": {
+      "description": "<strong>Limite máximo de tokens gerados na resposta.</strong>\n\n<p>Substitui o <code>max_tokens</code>, que está descontinuado. Conta apenas o que o modelo <em>gera</em> — inclusive tokens de raciocínio, quando o modelo os produz.</p>\n\n<p><strong>Cuidado:</strong> em modelos com reasoning, um limite apertado pode ser todo consumido pelo raciocínio, devolvendo uma resposta truncada com <code>finish_reason</code> de limite atingido. Deixe folga.</p>",
+      "example": "\"max_completion_tokens\": 4096"
+    },
+    "max_tokens": {
+      "description": "<strong>Define o limite máximo de tokens na resposta.</strong>\n\n<p>⚠️ <strong>Descontinuado:</strong> a spec da OpenRouter marca este campo como <em>deprecated</em> — use <code>max_completion_tokens</code>. Alguns provedores impõem um mínimo de 16.</p>\n\n<p>Controla o comprimento máximo da saída gerada pelo modelo. Importante para:</p>\n\n<ul>\n<li><strong>Controle de custos:</strong> Tokens de saída geralmente são mais caros que tokens de entrada</li>\n<li><strong>Controle de formato:</strong> Garante que respostas não excedam limites desejados</li>\n<li><strong>Performance:</strong> Respostas mais curtas são geradas mais rapidamente</li>\n</ul>\n\n<p><strong>Atenção:</strong> O valor máximo é limitado pelo tamanho do contexto menos os tokens do prompt. Se não especificado, o modelo usa seu padrão (que varia por provedor e modelo).</p>",
+      "example": "\"max_tokens\": 4096",
+      "default": "Máximo permitido pelo modelo"
+    },
+    "messages": {
+      "description": "<strong>Array de mensagens que compõem a conversa.</strong>\n\n<p>Cada mensagem possui um <code>role</code> e <code>content</code>:</p>\n\n<ul>\n<li><strong>system:</strong> Instruções de comportamento para o modelo (opcional mas recomendado)</li>\n<li><strong>user:</strong> Mensagens do usuário humano</li>\n<li><strong>assistant:</strong> Respostas anteriores do modelo</li>\n<li><strong>tool:</strong> Resultados de chamadas de função</li>\n</ul>\n\n<p>A ordem das mensagens importa e representa o histórico da conversa.</p>",
+      "example": "\"messages\": [{\"role\": \"system\", \"content\": \"Você é um assistente.\"}, {\"role\": \"user\", \"content\": \"Olá!\"}]"
+    },
+    "min_p": {
+      "description": "<strong>Filtragem dinâmica baseada na probabilidade mínima relativa.</strong>\n\n<p>Uma técnica mais recente de amostragem que descarta tokens cuja probabilidade seja menor que uma fração da probabilidade do token mais provável:</p>\n\n<ul>\n<li>Se o token mais provável tem probabilidade P, apenas tokens com probabilidade >= P × min_p são considerados</li>\n<li><strong>min_p = 0.1:</strong> Tokens precisam ter pelo menos 10% da probabilidade do mais provável</li>\n</ul>\n\n<p>Vantagem: Adapta-se automaticamente à \"certeza\" do modelo em cada passo.</p>",
+      "example": "\"min_p\": 0.05",
+      "default": "0"
+    },
+    "model": {
+      "description": "<strong>Identificador do modelo a ser utilizado.</strong>\n\n<p>Este é o ID único que especifica qual modelo de IA irá processar sua requisição. Cada provedor tem seus próprios modelos disponíveis.</p>\n\n<p>Via OpenRouter, o formato é <code>provedor/nome-do-modelo</code>. Em chamadas diretas aos provedores, use o ID nativo (ex.: <code>gpt-5.6</code> na OpenAI, <code>claude-opus-5</code> na Anthropic).</p>",
+      "example": "\"model\": \"anthropic/claude-opus-5\""
+    },
+    "parallel_tool_calls": {
+      "description": "<strong>Permite chamadas simultâneas de múltiplas ferramentas.</strong>\n\n<p>Quando ativado, o modelo pode solicitar várias funções de uma vez:</p>\n\n<ul>\n<li><strong>true:</strong> Modelo pode gerar múltiplas chamadas de tool em uma única resposta</li>\n<li><strong>false:</strong> Modelo gera apenas uma chamada por vez</li>\n</ul>\n\n<p><strong>Vantagens do paralelo:</strong> Menor latência quando múltiplas informações são necessárias simultaneamente.</p>\n<p><strong>Quando desativar:</strong> Se as tools têm dependências entre si ou a ordem de execução importa.</p>",
+      "example": "\"parallel_tool_calls\": true",
+      "default": "true"
+    },
+    "prediction": {
+      "description": "<strong>Saída prevista, para reduzir latência.</strong>\n\n<p>Quando você já sabe boa parte do que a resposta vai conter — por exemplo, ao reescrever um arquivo mudando poucas linhas — envie o conteúdo previsto e o modelo aproveita as partes que coincidem em vez de regerá-las.</p>\n\n<p>Ganho típico em edição de código e refatoração. Se a previsão errar muito, não há ganho (e pode haver custo extra).</p>",
+      "example": "\"prediction\": {\"type\": \"content\", \"content\": \"<texto esperado>\"}"
+    },
+    "presence_penalty": {
+      "description": "<strong>Penaliza tokens que já apareceram (independente da frequência).</strong>\n\n<p>Similar ao frequency_penalty, mas aplica uma penalidade fixa para qualquer token que já tenha aparecido:</p>\n\n<ul>\n<li><strong>Valores positivos:</strong> Incentiva o modelo a falar sobre novos tópicos</li>\n<li><strong>Valor 0:</strong> Sem penalidade</li>\n<li><strong>Valores negativos:</strong> Incentiva manter o foco nos mesmos tópicos</li>\n</ul>\n\n<p><strong>Diferença do frequency_penalty:</strong> Presence penalty é binário (apareceu ou não), enquanto frequency penalty é proporcional ao número de aparições.</p>",
+      "example": "\"presence_penalty\": 0.6",
+      "default": "0"
+    },
+    "reasoning": {
+      "description": "<strong>Configura o comportamento de raciocínio (reasoning) do modelo.</strong>\n\n<p>Objeto que controla quanto o modelo \"pensa\" antes de responder e o que é devolvido desse processo:</p>\n\n<ul>\n<li><code>effort</code>: profundidade do raciocínio. Ver <code>reasoning_effort</code> para os valores aceitos.</li>\n<li><code>summary</code>: pede um resumo do raciocínio em vez do texto bruto (ex.: <code>\"concise\"</code>).</li>\n<li><code>exclude</code>: pensa, mas não devolve os tokens de raciocínio.</li>\n</ul>\n\n<p><strong>Custo:</strong> tokens de raciocínio são cobrados mesmo quando não aparecem na resposta — vários modelos os precificam à parte (ver <em>Raciocínio interno</em> na seção de preços).</p>",
+      "example": "\"reasoning\": {\"effort\": \"medium\", \"summary\": \"concise\"}"
+    },
+    "reasoning_effort": {
+      "description": "<strong>Atalho para definir a profundidade do raciocínio.</strong>\n\n<p>Equivale a <code>reasoning.effort</code>. Não pode ser usado junto com <code>reasoning.effort</code> se os valores forem diferentes.</p>\n\n<ul>\n<li><code>none</code> / <code>minimal</code>: praticamente sem raciocínio — menor latência e custo.</li>\n<li><code>low</code> / <code>medium</code>: equilíbrio para a maioria dos casos.</li>\n<li><code>high</code> / <code>xhigh</code>: tarefas que exigem múltiplos passos de raciocínio.</li>\n<li><code>max</code>: teto de capacidade, quando acertar importa mais que custo e latência.</li>\n</ul>\n\n<p>Mais esforço custa mais tokens e aumenta a latência; em tarefas simples pode até piorar o resultado por excesso de deliberação.</p>",
+      "example": "\"reasoning_effort\": \"medium\""
+    },
+    "repetition_penalty": {
+      "description": "<strong>Penalidade multiplicativa contra repetição de tokens.</strong>\n\n<p>Implementação alternativa de penalidade de repetição, comum em modelos open-source:</p>\n\n<ul>\n<li><strong>Valor 1.0:</strong> Sem penalidade</li>\n<li><strong>Valores > 1.0:</strong> Reduz probabilidade de tokens já gerados</li>\n<li><strong>Valores < 1.0:</strong> Aumenta probabilidade de repetição (raramente usado)</li>\n</ul>\n\n<p>Este parâmetro é multiplicativo, diferente de frequency_penalty e presence_penalty que são aditivos. Valor típico: 1.1 a 1.2</p>",
+      "example": "\"repetition_penalty\": 1.1",
+      "default": "1.0"
+    },
+    "response_format": {
+      "description": "<strong>Define o formato estruturado da resposta.</strong>\n\n<p>Força o modelo a responder em formatos específicos:</p>\n\n<ul>\n<li><strong>{\"type\": \"json_object\"}:</strong> Garante que a saída seja JSON válido</li>\n<li><strong>{\"type\": \"json_schema\", \"json_schema\": {...}}:</strong> Força aderência a um schema JSON específico</li>\n<li><strong>{\"type\": \"text\"}:</strong> Texto livre (padrão)</li>\n</ul>\n\n<p><strong>Importante:</strong> Ao usar json_object, inclua instruções no prompt para gerar JSON, ou o modelo pode gerar uma stream infinita de espaços.</p>",
+      "example": "\"response_format\": {\"type\": \"json_object\"}",
+      "default": "{\"type\": \"text\"}"
+    },
+    "seed": {
+      "description": "<strong>Semente para reprodutibilidade das respostas.</strong>\n\n<p>Permite obter respostas determinísticas quando usado com temperature baixa:</p>\n\n<ul>\n<li>Mesma seed + mesmos parâmetros + mesmo prompt = mesma resposta</li>\n<li>Útil para testes, debugging e reprodução de resultados</li>\n<li>Não garante 100% de determinismo em todos os modelos (devido a diferenças de hardware/implementação)</li>\n</ul>\n\n<p><strong>Nota:</strong> Funcionalidade beta em alguns provedores. Verifique a documentação específica do modelo.</p>",
+      "example": "\"seed\": 42",
+      "default": "Aleatório"
+    },
+    "stop": {
+      "description": "<strong>Sequências que interrompem a geração.</strong>\n\n<p>Define tokens ou strings que, quando gerados, fazem o modelo parar:</p>\n\n<ul>\n<li>Pode ser uma única string ou um array de até 4 strings</li>\n<li>A sequência de parada NÃO é incluída na resposta</li>\n<li>Útil para formatos estruturados ou diálogos</li>\n</ul>\n\n<p><strong>Exemplos de uso:</strong></p>\n<ul>\n<li>Parar ao encontrar fim de código: <code>\"stop\": [\"\\n\\n\"]</code></li>\n<li>Parar em marcadores: <code>\"stop\": [\"###\", \"FIM\"]</code></li>\n</ul>",
+      "example": "\"stop\": [\"\\n\\n\", \"###\"]",
+      "default": "null"
+    },
+    "stream": {
+      "description": "<strong>Ativa streaming de respostas via Server-Sent Events (SSE).</strong>\n\n<p>Em vez de esperar a resposta completa, recebe tokens conforme são gerados:</p>\n\n<ul>\n<li><strong>Vantagens:</strong> Menor tempo até o primeiro token (TTFT), melhor experiência do usuário</li>\n<li><strong>Formato:</strong> Dados chegam como eventos SSE no formato <code>data: {...}</code></li>\n<li><strong>Finalização:</strong> Stream termina com <code>data: [DONE]</code></li>\n</ul>\n\n<p><strong>Consideração:</strong> Requer tratamento especial no cliente para processar chunks parciais.</p>",
+      "example": "\"stream\": true",
+      "default": "false"
+    },
+    "structured_outputs": {
+      "description": "<strong>Indica suporte a saídas estruturadas com JSON Schema.</strong>\n\n<p>Campo da camada da OpenRouter — não aparece na spec OpenAPI. Aqui funciona mais como <em>sinalizador de capacidade</em> do que como parâmetro de requisição: quando um modelo o anuncia, ele aceita <code>response_format</code> do tipo <code>json_schema</code> e garante que a saída siga o schema.</p>\n\n<p>Para usar na prática, envie o schema em <code>response_format</code>.</p>",
+      "example": "\"response_format\": {\"type\": \"json_schema\", \"json_schema\": {...}}"
+    },
+    "temperature": {
+      "description": "<strong>Controla a aleatoriedade/criatividade das respostas.</strong>\n\n<p>Este parâmetro influencia a diversidade das saídas do modelo. Funciona ajustando a distribuição de probabilidade dos próximos tokens:</p>\n\n<ul>\n<li><strong>Valores baixos (0.0 - 0.3):</strong> Respostas mais determinísticas, previsíveis e focadas. Ideal para tarefas que exigem precisão como código, análise de dados ou respostas factuais.</li>\n<li><strong>Valores médios (0.4 - 0.7):</strong> Equilíbrio entre criatividade e coerência. Bom para a maioria dos casos de uso gerais.</li>\n<li><strong>Valores altos (0.8 - 2.0):</strong> Respostas mais criativas, diversas e às vezes surpreendentes. Útil para brainstorming, escrita criativa ou quando se deseja explorar ideias variadas.</li>\n</ul>\n\n<p><em>Nota:</em> Com temperature = 0, o modelo se torna quase determinístico, sempre escolhendo o token mais provável.</p>",
+      "example": "\"temperature\": 0.7",
+      "default": "1.0"
+    },
+    "tool_choice": {
+      "description": "<strong>Controla como o modelo usa as tools definidas.</strong>\n\n<p>Determina o comportamento de seleção de ferramentas:</p>\n\n<ul>\n<li><strong>\"auto\":</strong> Modelo decide se usa tools ou não (padrão)</li>\n<li><strong>\"none\":</strong> Força o modelo a NÃO usar tools, apenas responder com texto</li>\n<li><strong>\"required\":</strong> Força o modelo a usar alguma tool obrigatoriamente</li>\n<li><strong>{\"type\": \"function\", \"function\": {\"name\": \"...\"}}:</strong> Força uso de uma tool específica</li>\n</ul>\n\n<h4>Quando usar cada opção:</h4>\n<ul>\n<li><strong>auto:</strong> Cenários gerais onde o modelo deve decidir autonomamente</li>\n<li><strong>none:</strong> Quando quer uma resposta conversacional sem chamadas de função</li>\n<li><strong>required:</strong> Quando SEMPRE precisa de uma ação, não apenas uma resposta textual</li>\n<li><strong>Específico:</strong> Quando sabe exatamente qual função deve ser chamada</li>\n</ul>",
+      "example": "\"tool_choice\": \"auto\"",
+      "default": "\"auto\" (quando tools está presente)"
+    },
+    "tools": {
+      "description": "<strong>Define ferramentas (funções) que o modelo pode chamar.</strong>\n\n<h4>🔧 Tipos de Tools</h4>\n\n<p>Existem <strong>dois tipos principais</strong> de tools disponíveis:</p>\n\n<h5>1. Tools Nativas (Built-in) — Já implementadas pelo provedor</h5>\n<p>Alguns provedores oferecem ferramentas prontas para uso, com implementação completa:</p>\n<ul>\n<li><strong>OpenAI:</strong> Code Interpreter, File Search, Web Browsing (em alguns modelos)</li>\n<li><strong>Anthropic:</strong> Computer Use (beta), Web Search, Text Editor</li>\n<li><strong>Google:</strong> Code Execution, Google Search</li>\n<li><strong>Perplexity:</strong> Busca web integrada automaticamente</li>\n</ul>\n<p>Essas tools são ativadas via configurações específicas de cada provedor e você <strong>não precisa implementar nada</strong> — o provedor executa a ferramenta e retorna o resultado.</p>\n\n<h5>2. Tools Personalizadas (Function Calling) — Você implementa</h5>\n<p>Você pode definir suas próprias funções que o modelo pode solicitar executar:</p>\n<ul>\n<li>O modelo decide <strong>QUANDO</strong> chamar a função baseado no contexto</li>\n<li>O modelo gera os <strong>ARGUMENTOS</strong> apropriados em JSON</li>\n<li><strong>⚠️ VOCÊ é responsável por implementar e executar a função</strong> em seu código</li>\n<li>Após execução, você envia o resultado de volta ao modelo</li>\n</ul>\n\n<h4>📋 Como Funciona o Function Calling (Tools Personalizadas)</h4>\n\n<ol>\n<li><strong>Definição:</strong> Você descreve a função (nome, descrição, parâmetros) no formato JSON Schema</li>\n<li><strong>Requisição:</strong> Envia a definição junto com as mensagens</li>\n<li><strong>Análise:</strong> O modelo analisa a conversa e decide se precisa chamar alguma função</li>\n<li><strong>Chamada:</strong> O modelo retorna um objeto <code>tool_calls</code> com nome da função e argumentos JSON</li>\n<li><strong>Execução:</strong> <strong>Seu código</strong> executa a função com os argumentos recebidos</li>\n<li><strong>Retorno:</strong> Você envia o resultado para o modelo como uma mensagem com role \"tool\"</li>\n<li><strong>Resposta:</strong> O modelo usa o resultado para formular a resposta final ao usuário</li>\n</ol>\n\n<h4>📝 Estrutura de uma Tool Personalizada</h4>\n<pre><code>{\n  \"type\": \"function\",\n  \"function\": {\n    \"name\": \"nome_da_funcao\",\n    \"description\": \"Descrição clara do que a função faz\",\n    \"parameters\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"param1\": {\n          \"type\": \"string\",\n          \"description\": \"Descrição do parâmetro\"\n        },\n        \"param2\": {\n          \"type\": \"number\",\n          \"description\": \"Outro parâmetro\"\n        }\n      },\n      \"required\": [\"param1\"]\n    }\n  }\n}</code></pre>\n\n<p><strong>⚠️ Importante:</strong> A qualidade da descrição afeta diretamente quando e como o modelo usa a tool. Seja específico e claro.</p>\n\n<p><strong>💡 Dica:</strong> Use nomes de funções descritivos e em snake_case (ex: get_weather, search_database, send_email).</p>",
+      "example": "\"tools\": [{\"type\": \"function\", \"function\": {\"name\": \"get_weather\", \"description\": \"Obtém clima atual\", \"parameters\": {\"type\": \"object\", \"properties\": {\"city\": {\"type\": \"string\"}}, \"required\": [\"city\"]}}}]",
+      "default": "null"
+    },
+    "top_a": {
+      "description": "<strong>Amostragem Top-A (adaptativa).</strong>\n\n<p>Método de amostragem que considera apenas tokens cuja probabilidade seja pelo menos uma fração da probabilidade do token mais provável, elevada a uma potência:</p>\n\n<p>Remove tokens onde: P(token) < P(top_token)² × top_a</p>\n\n<p>Útil para controle fino em situações onde top_p e top_k não produzem os resultados desejados.</p>",
+      "example": "\"top_a\": 0.8",
+      "default": "0"
+    },
+    "top_k": {
+      "description": "<strong>Limita a seleção aos K tokens mais prováveis.</strong>\n\n<p>Diferente do top_p que usa probabilidade acumulada, o top_k define um número fixo de candidatos:</p>\n\n<ul>\n<li><strong>top_k = 1:</strong> Sempre escolhe o token mais provável (greedy decoding)</li>\n<li><strong>top_k = 10:</strong> Escolhe aleatoriamente entre os 10 tokens mais prováveis</li>\n<li><strong>top_k = 50:</strong> Valor comum que permite diversidade controlada</li>\n</ul>\n\n<p>Este parâmetro é especialmente popular em modelos como Claude e Gemini. Não é suportado nativamente pela API da OpenAI.</p>",
+      "example": "\"top_k\": 40",
+      "default": "Varia por modelo"
+    },
+    "top_logprobs": {
+      "description": "<strong>Número de alternativas mais prováveis a retornar.</strong>\n\n<p>Usado em conjunto com <code>logprobs: true</code>, especifica quantos tokens alternativos incluir:</p>\n\n<ul>\n<li>Retorna os N tokens mais prováveis para cada posição</li>\n<li>Inclui a probabilidade de cada alternativa</li>\n<li>Máximo geralmente é 20</li>\n</ul>\n\n<p>Útil para análise detalhada do comportamento do modelo.</p>",
+      "example": "\"top_logprobs\": 5",
+      "default": "null"
+    },
+    "top_p": {
+      "description": "<strong>Amostragem por núcleo (nucleus sampling).</strong>\n\n<p>Alternativa à temperature para controlar aleatoriedade. Define um limiar de probabilidade acumulada para a seleção de tokens:</p>\n\n<ul>\n<li><strong>top_p = 0.1:</strong> Considera apenas os tokens que compõem os 10% mais prováveis</li>\n<li><strong>top_p = 0.9:</strong> Considera tokens até atingir 90% de probabilidade acumulada</li>\n<li><strong>top_p = 1.0:</strong> Considera todos os tokens possíveis</li>\n</ul>\n\n<p><strong>Dica:</strong> Geralmente, recomenda-se ajustar temperature OU top_p, mas não ambos simultaneamente, pois podem interferir um no outro de formas imprevisíveis.</p>",
+      "example": "\"top_p\": 0.9",
+      "default": "1.0"
+    },
+    "user": {
+      "description": "<strong>Identificador único do usuário final.</strong>\n\n<p>Ajuda o provedor a monitorar e detectar abusos:</p>\n\n<ul>\n<li>Deve ser único por usuário, mas não conter informações pessoais identificáveis</li>\n<li>Use hashes ou IDs internos, não emails/nomes reais</li>\n<li>Útil para rate limiting e análise de uso por usuário</li>\n</ul>",
+      "example": "\"user\": \"user_abc123\"",
+      "default": "null"
+    },
+    "verbosity": {
+      "description": "<strong>Controla o nível de detalhamento da resposta.</strong>\n\n<p>Parâmetro da camada da OpenRouter — <em>não</em> aparece na spec OpenAPI e não existe na API nativa dos provedores.</p>\n\n<p>Hoje é anunciado apenas por modelos <strong>Anthropic</strong> (família Claude). Nesses modelos, o controle nativo equivalente de profundidade/esforço é <code>output_config.effort</code>, que aceita <strong>níveis</strong> — <code>low</code>, <code>medium</code>, <code>high</code>, <code>xhigh</code>, <code>max</code> — e não um número.</p>\n\n<p><strong>Atenção:</strong> como a OpenRouter não documenta este campo, confirme o formato aceito antes de usar em produção.</p>",
+      "example": "\"verbosity\": \"medium\""
+    },
+    "web_search_options": {
+      "description": "<strong>Configura a busca na web nativa do provedor.</strong>\n\n<p>Campo da camada da OpenRouter — não aparece na spec OpenAPI. Anunciado por 16 modelos.</p>\n\n<p>Ajusta o comportamento da ferramenta de busca embutida (por exemplo, quanto contexto trazer de cada resultado). Consulte a documentação da OpenRouter para as chaves aceitas.</p>\n\n<p><strong>Custo:</strong> a busca é cobrada <em>por requisição</em>, à parte dos tokens — ver <em>Busca na web</em> na seção de preços.</p>",
+      "example": "\"web_search_options\": {\"search_context_size\": \"medium\"}"
+    }
+  }
+}

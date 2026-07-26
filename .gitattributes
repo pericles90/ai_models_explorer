@@ -1,0 +1,16 @@
+# Normalização padrão: o Git guarda LF no repositório
+* text=auto
+
+# Arquivos gerados e lidos por scripts/sync-params.mjs precisam de quebra de
+# linha estável nas duas pontas. Sem isso, em máquinas com core.autocrlf=true
+# o checkout viraria CRLF, o script (que grava LF) reescreveria o arquivo a
+# cada execução e o `--check` acusaria desatualização sem nada ter mudado.
+params.json        text eol=lf
+params.pt-BR.json  text eol=lf
+*.mjs              text eol=lf
+*.yml              text eol=lf
+
+# Não mexer em binários
+*.png binary
+*.jpg binary
+*.ico binary
