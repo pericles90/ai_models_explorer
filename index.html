@@ -1609,11 +1609,20 @@
         let allParameters = new Set();
         let searchTimeout = null;
         let lastFocusedElement = null;
+        let focoAntesDaComparacao = null;
 
         // Cache local do payload da API
         const MODELS_CACHE_KEY = 'openrouter-models-cache-v1';
         const MODELS_CACHE_TTL_MS = 60 * 60 * 1000; // 1 hora
         const FETCH_TIMEOUT_MS = 15000;
+
+        // Busca em mapa só por propriedade PRÓPRIA.
+        // obj['constructor'] devolveria Object.prototype.constructor, e nomes de
+        // provedor e de parâmetro vêm da API — não são chaves confiáveis. Sem
+        // isto, um provedor chamado "constructor" gera href="function Object()...".
+        function mapGet(obj, chave) {
+            return Object.hasOwn(obj, chave) ? obj[chave] : undefined;
+        }
 
         // Escapa dados externos antes de interpolar em innerHTML/atributos
         function escapeHtml(value) {
@@ -2017,7 +2026,7 @@
         function montarMultiSelects() {
             document.querySelectorAll('.ms').forEach(raiz => {
                 const chave = raiz.dataset.filtro;
-                const cfg = MS_CONFIG[chave];
+                const cfg = mapGet(MS_CONFIG, chave);
                 raiz.innerHTML =
                     '<button type="button" class="ms-btn" aria-expanded="false" aria-haspopup="listbox" aria-labelledby="' + cfg.rotulado + '">' +
                         '<span class="ms-btn-texto vazio">' + escapeHtml(cfg.vazio) + '</span>' +
@@ -2196,7 +2205,7 @@
             if (badgeAntigo) badgeAntigo.remove();
 
             if (!selecionados.length) {
-                alvo.textContent = MS_CONFIG[chave].vazio;
+                alvo.textContent = (mapGet(MS_CONFIG, chave) || {}).vazio || '';
                 alvo.classList.add('vazio');
                 return;
             }
@@ -2322,9 +2331,12 @@
                 if (e.target === document.getElementById('compareOverlay')) fecharComparacao();
             });
             document.addEventListener('keydown', (e) => {
-                if (e.key === 'Escape' && document.getElementById('compareOverlay').classList.contains('active')) {
+                if (!document.getElementById('compareOverlay').classList.contains('active')) return;
+                if (e.key === 'Escape') {
                     fecharComparacao();
+                    return;
                 }
+                prenderFoco(e, document.getElementById('compareContent'));
             });
             // Abertura do modal via delegação (um listener para todos os cards)
             document.getElementById('modelsContainer').addEventListener('click', (e) => {
@@ -2369,21 +2381,7 @@
                     return;
                 }
 
-                // Focus trap: mantém o Tab dentro do modal
-                if (e.key === 'Tab') {
-                    const focusables = document.getElementById('modalContent')
-                        .querySelectorAll('button, a[href], [tabindex]:not([tabindex="-1"])');
-                    if (focusables.length === 0) return;
-                    const first = focusables[0];
-                    const last = focusables[focusables.length - 1];
-                    if (e.shiftKey && document.activeElement === first) {
-                        e.preventDefault();
-                        last.focus();
-                    } else if (!e.shiftKey && document.activeElement === last) {
-                        e.preventDefault();
-                        first.focus();
-                    }
-                }
+                prenderFoco(e, document.getElementById('modalContent'));
             });
         }
 
@@ -2603,14 +2601,38 @@
                 '<div class="compare-scroll"><table class="compare-table"><thead>' +
                 cabecalho + '</thead><tbody>' + linhas.join('') + '</tbody></table></div>';
 
+            focoAntesDaComparacao = document.activeElement;
             document.getElementById('compareOverlay').classList.add('active');
             document.body.style.overflow = 'hidden';
             document.getElementById('compareClose').focus();
         }
 
         function fecharComparacao() {
-            document.getElementById('compareOverlay').classList.remove('active');
+            const overlay = document.getElementById('compareOverlay');
+            if (!overlay.classList.contains('active')) return;
+            overlay.classList.remove('active');
             document.body.style.overflow = '';
+            // Devolve o foco a quem abriu, como o modal de modelo já fazia
+            if (focoAntesDaComparacao && typeof focoAntesDaComparacao.focus === 'function') {
+                focoAntesDaComparacao.focus();
+            }
+            focoAntesDaComparacao = null;
+        }
+
+        // Mantém o Tab dentro do container enquanto ele estiver aberto
+        function prenderFoco(evento, container) {
+            if (evento.key !== 'Tab') return;
+            const focaveis = container.querySelectorAll('button, a[href], input, [tabindex]:not([tabindex="-1"])');
+            if (!focaveis.length) return;
+            const primeiro = focaveis[0];
+            const ultimo = focaveis[focaveis.length - 1];
+            if (evento.shiftKey && document.activeElement === primeiro) {
+                evento.preventDefault();
+                ultimo.focus();
+            } else if (!evento.shiftKey && document.activeElement === ultimo) {
+                evento.preventDefault();
+                primeiro.focus();
+            }
         }
         // Renderiza os cards de modelos
         function renderModels(models) {
@@ -2982,7 +3004,7 @@
                 if (key === 'overrides') return;
                 if (value === null || typeof value === 'object') return;
 
-                const field = PRICING_FIELDS[key];
+                const field = mapGet(PRICING_FIELDS, key);
                 const known = Boolean(field);
                 const unit = known ? field.unit : 'unknown';
 
@@ -3110,7 +3132,7 @@
                 const prices = Object.entries(override)
                     .filter(([key]) => key !== 'min_prompt_tokens')
                     .map(([key, value]) => {
-                        const field = PRICING_FIELDS[key];
+                        const field = mapGet(PRICING_FIELDS, key);
                         const label = field ? field.label : humanizePricingKey(key);
                         const display = field && field.unit === 'request'
                             ? formatUnitPrice(value)
@@ -3303,9 +3325,9 @@
             // Metadados vêm do bloco gerado a partir da spec OpenAPI da OpenRouter.
             // Parâmetro ausente da spec ou sem description fica explícito na interface,
             // em vez de receber um texto inventado.
-            const info = paramDescriptions[param] || {};
+            const info = mapGet(paramDescriptions, param) || {};
             const tipo = info.type || `varies`;
-            const docLink = providerDocs[provider] || providerDocs[`default`];
+            const docLink = mapGet(providerDocs, provider) || providerDocs.default;
             const showDocLink = param === `tools` || param === `tool_choice`;
 
             // Texto curado (params.pt-BR.json) é HTML confiável, do próprio repo.
