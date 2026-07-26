@@ -1,6 +1,6 @@
 {
   "$schema": "./params.pt-BR.schema.md",
-  "_leiame": "Camada curada em português, aplicada por cima do que vem da spec OpenAPI da OpenRouter (scripts/sync-params.mjs). Só \"description\" (HTML confiável), \"example\" e \"default\" são sobrepostos; tipo, enum e demais metadados sempre vêm da spec. Parâmetro sem entrada aqui usa o texto da spec.",
+  "_leiame": "Camada curada em português, aplicada por cima do que vem da spec OpenAPI da OpenRouter (scripts/sync-params.mjs). Só \"description\" (HTML confiável), \"example\" e \"default\" são sobrepostos; tipo, enum e demais metadados sempre vêm da spec. Parâmetro sem entrada aqui usa o texto da spec. Use \"exampleUsesOtherKey\": true quando o exemplo apontar de propósito para outra chave (caso de structured_outputs, que se usa via response_format).",
   "params": {
     "frequency_penalty": {
       "description": "<strong>Penaliza tokens com base em sua frequência no texto.</strong>\n\n<p>Reduz a repetição penalizando tokens que já apareceram, proporcionalmente à frequência:</p>\n\n<ul>\n<li><strong>Valores positivos (0.1 - 2.0):</strong> Reduz repetições, incentiva vocabulário diverso</li>\n<li><strong>Valor 0:</strong> Sem penalidade</li>\n<li><strong>Valores negativos:</strong> Aumenta a probabilidade de repetir palavras (raramente usado)</li>\n</ul>\n\n<p>A penalidade aumenta a cada vez que um token aparece, tornando-se mais forte quanto mais frequente for o token.</p>",
@@ -92,7 +92,8 @@
     },
     "structured_outputs": {
       "description": "<strong>Indica suporte a saídas estruturadas com JSON Schema.</strong>\n\n<p>Campo da camada da OpenRouter — não aparece na spec OpenAPI. Aqui funciona mais como <em>sinalizador de capacidade</em> do que como parâmetro de requisição: quando um modelo o anuncia, ele aceita <code>response_format</code> do tipo <code>json_schema</code> e garante que a saída siga o schema.</p>\n\n<p>Para usar na prática, envie o schema em <code>response_format</code>.</p>",
-      "example": "\"response_format\": {\"type\": \"json_schema\", \"json_schema\": {...}}"
+      "example": "\"response_format\": {\"type\": \"json_schema\", \"json_schema\": {...}}",
+      "exampleUsesOtherKey": true
     },
     "temperature": {
       "description": "<strong>Controla a aleatoriedade/criatividade das respostas.</strong>\n\n<p>Este parâmetro influencia a diversidade das saídas do modelo. Funciona ajustando a distribuição de probabilidade dos próximos tokens:</p>\n\n<ul>\n<li><strong>Valores baixos (0.0 - 0.3):</strong> Respostas mais determinísticas, previsíveis e focadas. Ideal para tarefas que exigem precisão como código, análise de dados ou respostas factuais.</li>\n<li><strong>Valores médios (0.4 - 0.7):</strong> Equilíbrio entre criatividade e coerência. Bom para a maioria dos casos de uso gerais.</li>\n<li><strong>Valores altos (0.8 - 2.0):</strong> Respostas mais criativas, diversas e às vezes surpreendentes. Útil para brainstorming, escrita criativa ou quando se deseja explorar ideias variadas.</li>\n</ul>\n\n<p><em>Nota:</em> Com temperature = 0, o modelo se torna quase determinístico, sempre escolhendo o token mais provável.</p>",
