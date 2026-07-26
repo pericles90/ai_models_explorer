@@ -170,6 +170,36 @@ function extrairParametro(nome, schema, spec) {
 /* Geração do bloco                                                    */
 /* ------------------------------------------------------------------ */
 
+// As duas fontes guardam o exemplo em formatos diferentes: a spec traz só o
+// VALOR (0.7), enquanto a camada curada costuma trazer o par completo
+// ("temperature": 0.7). Normaliza tudo para o par completo, para quem consome
+// o params.json poder exibir o campo direto, sem concatenar nada.
+function normalizarExemplo(nome, exemplo, outraChaveEsperada = false) {
+    if (exemplo === null || exemplo === undefined) return null;
+
+    const texto = String(exemplo).trim();
+    if (!texto) return null;
+
+    const chave = JSON.stringify(nome);
+    if (texto.startsWith(`${chave}:`) || texto.startsWith(`${chave} :`)) {
+        return texto; // já vem no formato "nome": valor
+    }
+
+    // Exemplo apontando para outra chave costuma ser engano — mas há casos
+    // legítimos (ex.: structured_outputs, que na prática se usa via
+    // response_format). Esses são marcados com exampleUsesOtherKey na
+    // camada curada e não geram aviso.
+    const outraChave = texto.match(/^"([^"]+)"\s*:/);
+    if (outraChave) {
+        if (!outraChaveEsperada) {
+            console.warn(`  ⚠️  exemplo de "${nome}" começa com a chave "${outraChave[1]}" — se for intencional, marque "exampleUsesOtherKey": true em params.pt-BR.json`);
+        }
+        return texto;
+    }
+
+    return `${chave}: ${texto}`;
+}
+
 // Funde a camada curada por cima do que veio da spec.
 // Tipo, enum e nullable nunca são sobrepostos: são fatos da API, não redação.
 function fundir(daSpec, overlay) {
@@ -193,7 +223,11 @@ function fundir(daSpec, overlay) {
             source: curado?.description ? 'pt-BR' : (spec.description ? 'spec' : null),
             // Guarda o texto oficial mesmo quando há tradução curada, para referência
             descriptionSpec: curado?.description && spec.description ? spec.description : undefined,
-            example: curado?.example || spec.example || null,
+            example: normalizarExemplo(
+                nome,
+                curado?.example || spec.example,
+                Boolean(curado?.exampleUsesOtherKey)
+            ),
             default: curado?.default || spec.default || null,
             // Marca o que a spec sequer conhece, para o app avisar
             naSpec: Boolean(daSpec[nome]) || undefined

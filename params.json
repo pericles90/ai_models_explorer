@@ -14,7 +14,7 @@
       "nullable": null,
       "description": "Enable automatic prompt caching. When set at the top level, the system automatically applies cache breakpoints to the last cacheable block in the request. When set on an individual content block, it marks an explicit cache breakpoint; block-level markers also work on OpenAI models that support explicit prompt caching — OpenRouter converts them to the provider's native format.",
       "source": "spec",
-      "example": "{\"type\":\"ephemeral\"}",
+      "example": "\"cache_control\": {\"type\":\"ephemeral\"}",
       "default": null,
       "naSpec": true
     },
@@ -24,7 +24,7 @@
       "nullable": null,
       "description": "Debug options for inspecting request transformations (streaming only)",
       "source": "spec",
-      "example": "{\"echo_upstream_body\":true}",
+      "example": "\"debug\": {\"echo_upstream_body\":true}",
       "default": null,
       "naSpec": true
     },
@@ -46,7 +46,7 @@
       "nullable": null,
       "description": "Provider-specific image configuration options. Keys and values vary by model/provider. See https://openrouter.ai/docs/guides/overview/multimodal/image-generation for more details.",
       "source": "spec",
-      "example": "{\"aspect_ratio\":\"16:9\",\"quality\":\"high\"}",
+      "example": "\"image_config\": {\"aspect_ratio\":\"16:9\",\"quality\":\"high\"}",
       "default": null,
       "naSpec": true
     },
@@ -126,7 +126,7 @@
       "nullable": null,
       "description": "Key-value pairs for additional object information (max 16 pairs, 64 char keys, 512 char values)",
       "source": "spec",
-      "example": "{\"session_id\":\"session-456\",\"user_id\":\"user-123\"}",
+      "example": "\"metadata\": {\"session_id\":\"session-456\",\"user_id\":\"user-123\"}",
       "default": null,
       "naSpec": true
     },
@@ -148,7 +148,7 @@
       "nullable": null,
       "description": "Output modalities for the response. Supported values are \"text\", \"image\", and \"audio\".",
       "source": "spec",
-      "example": "[\"text\",\"image\"]",
+      "example": "\"modalities\": [\"text\",\"image\"]",
       "default": null,
       "naSpec": true
     },
@@ -170,7 +170,7 @@
       "nullable": null,
       "description": "Models to use for completion",
       "source": "spec",
-      "example": "[\"openai/gpt-4\",\"openai/gpt-4o\"]",
+      "example": "\"models\": [\"openai/gpt-4\",\"openai/gpt-4o\"]",
       "default": null,
       "naSpec": true
     },
@@ -236,7 +236,7 @@
       "nullable": null,
       "description": "Request-level prompt-cache controls. `mode: \"explicit\"` disables OpenAI-managed breakpoints so only blocks marked with `prompt_cache_breakpoint` are cached. Only supported by OpenAI GPT-5.6 and newer.",
       "source": "spec",
-      "example": "{\"mode\":\"explicit\",\"ttl\":\"30m\"}",
+      "example": "\"prompt_cache_options\": {\"mode\":\"explicit\",\"ttl\":\"30m\"}",
       "default": null,
       "naSpec": true
     },
@@ -246,7 +246,7 @@
       "nullable": null,
       "description": "When multiple model providers are available, optionally indicate your routing preference.",
       "source": "spec",
-      "example": "{\"allow_fallbacks\":true}",
+      "example": "\"provider\": {\"allow_fallbacks\":true}",
       "default": null,
       "naSpec": true
     },
@@ -315,7 +315,7 @@
       "nullable": null,
       "description": "**DEPRECATED** Use providers.sort.partition instead. Backwards-compatible alias for providers.sort.partition. Accepts legacy values: \"fallback\" (maps to \"model\"), \"sort\" (maps to \"none\").",
       "source": "spec",
-      "example": "\"fallback\"",
+      "example": "\"route\": \"fallback\"",
       "default": null,
       "naSpec": true
     },
@@ -343,7 +343,7 @@
       "nullable": true,
       "description": "The service tier to use for processing this request.",
       "source": "spec",
-      "example": "\"auto\"",
+      "example": "\"service_tier\": \"auto\"",
       "default": null,
       "naSpec": true
     },
@@ -375,7 +375,7 @@
       "nullable": null,
       "description": "Stop conditions for the server-tool agent loop. Any condition firing halts the loop (OR logic). When set, this overrides `max_tool_calls`. When a condition fires while the model is still emitting tool calls, the pending tool calls are executed and one final turn is made with tool calls disabled so the response ends with a natural-language answer instead of an unfinished tool call.",
       "source": "spec",
-      "example": "[{\"step_count\":5,\"type\":\"step_count_is\"},{\"max_cost_in_dollars\":0.5,\"type\":\"max_cost\"}]",
+      "example": "\"stop_server_tools_when\": [{\"step_count\":5,\"type\":\"step_count_is\"},{\"max_cost_in_dollars\":0.5,\"type\":\"max_cost\"}]",
       "default": null,
       "naSpec": true
     },
@@ -397,7 +397,7 @@
       "nullable": null,
       "description": "Streaming configuration options",
       "source": "spec",
-      "example": "{\"include_usage\":true}",
+      "example": "\"stream_options\": {\"include_usage\":true}",
       "default": null,
       "naSpec": true
     },
@@ -505,7 +505,7 @@
       "nullable": null,
       "description": "Metadata for observability and tracing. Known keys (trace_id, trace_name, span_name, generation_name, parent_span_id) have special handling. Additional keys are passed through as custom metadata to configured broadcast destinations.",
       "source": "spec",
-      "example": "{\"trace_id\":\"trace-abc123\",\"trace_name\":\"my-app-trace\"}",
+      "example": "\"trace\": {\"trace_id\":\"trace-abc123\",\"trace_name\":\"my-app-trace\"}",
       "default": null,
       "naSpec": true
     },
