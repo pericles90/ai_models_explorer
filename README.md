@@ -20,7 +20,8 @@ Uma aplicação web que exibe informações em tempo real sobre centenas de mode
 - 🗓️ **Filtro por expiração** — encontre modelos já expirados ou prestes a expirar (7, 30, 90 dias ou 1 ano)
 - ☑️ **Filtros multi-seleção com busca** — digite para localizar e marque vários provedores, modelos, parâmetros ou faixas
 - 📊 **Benchmarks no card** — índices de Inteligência, Código e Agêntico em barras comparáveis entre modelos
-- ↕️ **Ordenação** — por benchmark, preço, contexto, data de lançamento ou proximidade da expiração
+- ↕️ **Ordenação** — 19 campos (benchmarks, todos os preços da API, contexto, data, expiração) nas duas direções
+- 💵 **Filtro de cobrança** — separe modelos gratuitos dos pagos
 - ⚖️ **Modo comparar** — selecione modelos e veja-os lado a lado, com o melhor de cada linha destacado
 - 📋 **Detalhes completos** de cada modelo em modal interativo
 - 🔧 **Documentação de parâmetros** com explicações e exemplos
@@ -109,9 +110,38 @@ filtros (busca facetada), então o número exibido é o que aquela seleção ent
 | Modelo | OU |
 | Parâmetro | **E ou OU**, alternável no rótulo do filtro |
 | Expiração | OU — as faixas já são cumulativas entre si |
+| Cobrança | OU — gratuitos (18) e/ou pagos (325) |
 
 O alternador **E / OU** dos parâmetros muda bastante o resultado: marcar `tools`
 e `reasoning` devolve 296 modelos em OU e 191 em E.
+
+> **Por que só Parâmetro tem o alternador?** Porque é o único filtro em que um
+> modelo tem *vários* valores. `getProvider()` devolve exatamente um provedor por
+> modelo, então "anthropic **E** openai" seria sempre vazio; o mesmo vale para
+> modelo. As faixas de expiração são aninhadas (7d ⊂ 30d ⊂ 90d), então o E
+> devolveria apenas a faixa mais estreita — nunca uma informação nova.
+
+Filtros diferentes se combinam em **E**. Para isso não travar o uso, marcar um
+modelo cujo provedor não está selecionado **adiciona aquele provedor** à seleção
+— senão a escolha devolveria zero resultados sem explicação.
+
+## ↕️ Ordenação
+
+Campo e direção são controles separados, senão a lista passaria de 35 opções:
+são 12 campos de preço só na API de hoje. São **19 campos** × 2 direções.
+
+| Grupo | Campos |
+|-------|--------|
+| Geral | Data de lançamento, Nome, Contexto, Expiração |
+| Benchmarks | Inteligência, Código, Agêntico |
+| Preços | Entrada, Saída, Raciocínio interno, Cache (leitura, escrita 5 min, escrita 1 h, áudio), Imagem (entrada/saída), Áudio (entrada/saída), Busca na web |
+
+Os campos de preço saem do mesmo registry `PRICING_FIELDS` usado na exibição, e
+só aparecem quando ao menos um modelo os possui — campo novo na API vira
+ordenação automaticamente.
+
+Modelos sem o dado do critério vão sempre para o **fim**, em qualquer direção:
+ordenar por "mais barato" não pode trazer os sem preço na frente.
 
 ## 🗓️ Filtro por Expiração
 
