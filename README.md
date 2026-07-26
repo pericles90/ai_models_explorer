@@ -17,6 +17,7 @@ Uma aplicação web que exibe informações em tempo real sobre centenas de mode
 - 📊 **Visualização em cards** com preços, contexto e modalidade
 - 💰 **Preços completos** — entrada, saída, cache (leitura/escrita 5 min/1 hora), multimodal e extras
 - ⏳ **Ciclo de vida** — data de lançamento, data de expiração (destacada quando próxima) e knowledge cutoff
+- 🗓️ **Filtro por expiração** — encontre modelos já expirados ou prestes a expirar (7, 30, 90 dias ou 1 ano)
 - 📋 **Detalhes completos** de cada modelo em modal interativo
 - 🔧 **Documentação de parâmetros** com explicações e exemplos
 - 📱 **Design responsivo** para desktop, tablet e mobile
@@ -64,6 +65,25 @@ O arquivo pode ser embarcado diretamente em uma WebView Android:
 ```kotlin
 webView.loadUrl("file:///android_asset/index.html")
 ```
+
+## 🗓️ Filtro por Expiração
+
+O campo `expiration_date` da API é, segundo a spec, *"a data após a qual o modelo
+**pode** ser removido"* — é o único campo de ciclo de vida (não existe flag de
+`deprecated` nem `status`). O filtro oferece faixas cumulativas, com a contagem
+de modelos ao lado de cada uma; faixa sem nenhum modelo aparece desabilitada, em
+vez de sumir:
+
+| Faixa | Critério |
+|-------|----------|
+| Já expirados | data anterior a hoje |
+| Expira em até 7 / 30 / 90 dias / 1 ano | cumulativas — "30 dias" inclui o que vence em 7 |
+| Sem prazo definido | `expiration_date` nulo **ou** muito distante (ver abaixo) |
+
+> **Datas sentinela:** a spec não define um valor para "sem expiração" além de
+> `null`, mas alguns modelos usam datas absurdamente distantes (ex.: `2098-12-31`).
+> Datas a mais de 50 anos são tratadas como sem prazo — decisão do explorador,
+> não da API. O limiar é a constante `DIAS_PRAZO_IRRELEVANTE` em `index.html`.
 
 ## 🔧 Parâmetros Documentados
 

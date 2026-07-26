@@ -1110,6 +1110,12 @@
                             <option value="">Todos os parâmetros</option>
                         </select>
                     </div>
+                    <div class="filter-group">
+                        <label for="expiryFilter">Expiração</label>
+                        <select class="filter-select" id="expiryFilter">
+                            <option value="">Qualquer expiração</option>
+                        </select>
+                    </div>
                 </div>
                 <div class="filters-footer">
                     <span class="active-filters" id="activeFiltersInfo"></span>
@@ -1368,6 +1374,7 @@
             populateProviderFilter();
             populateModelFilter(allModels);
             populateParamFilter(allParameters);
+            populateExpiryFilter(allModels);
 
             refreshResults();
         }
@@ -1403,6 +1410,28 @@
             // Mantém a seleção anterior se ainda existir
             if (currentValue && models.some(m => m.id === currentValue)) {
                 modelSelect.value = currentValue;
+            }
+        }
+
+        // Popula o filtro de expiração mostrando quantos modelos caem em cada faixa.
+        // Faixa vazia continua listada (e desabilitada) para deixar claro que a
+        // opção existe e que hoje simplesmente não há modelo naquela situação.
+        function populateExpiryFilter(models) {
+            const select = document.getElementById('expiryFilter');
+            const valorAtual = select.value;
+            select.innerHTML = `<option value="">Qualquer expiração (${models.length})</option>`;
+
+            FAIXAS_EXPIRACAO.forEach(faixa => {
+                const total = models.filter(m => faixa.teste(diasParaFiltro(m))).length;
+                const option = document.createElement('option');
+                option.value = faixa.valor;
+                option.textContent = `${faixa.rotulo} (${total})`;
+                option.disabled = total === 0;
+                select.appendChild(option);
+            });
+
+            if (valorAtual && [...select.options].some(o => o.value === valorAtual && !o.disabled)) {
+                select.value = valorAtual;
             }
         }
 
@@ -1462,6 +1491,7 @@
                 // (a seleção anterior é mantida quando ainda válida)
                 populateModelFilter(availableModels);
                 populateParamFilter(collectParams(availableModels));
+                populateExpiryFilter(availableModels);
 
                 refreshResults();
             });
@@ -1474,6 +1504,7 @@
                     // Atualiza provedor automaticamente
                     document.getElementById('providerFilter').value = getProvider(selectedModel);
                     populateParamFilter(new Set(selectedModel.supported_parameters || []));
+                    populateExpiryFilter([selectedModel]);
                 } else {
                     // "Todos os modelos": restaura os parâmetros do provedor selecionado (ou de todos)
                     const providerVal = document.getElementById('providerFilter').value;
@@ -1481,6 +1512,7 @@
                         ? allModels.filter(m => getProvider(m) === providerVal)
                         : allModels;
                     populateParamFilter(collectParams(availableModels));
+                    populateExpiryFilter(availableModels);
                 }
 
                 refreshResults();
@@ -1489,15 +1521,20 @@
             // Filtro de parâmetro
             document.getElementById('paramFilter').addEventListener('change', refreshResults);
 
+            // Filtro de expiração
+            document.getElementById('expiryFilter').addEventListener('change', refreshResults);
+
             // Limpar filtros
             document.getElementById('clearFilters').addEventListener('click', () => {
                 document.getElementById('providerFilter').value = '';
                 document.getElementById('modelFilter').value = '';
                 document.getElementById('paramFilter').value = '';
+                document.getElementById('expiryFilter').value = '';
 
                 // Restaura todos os combos
                 populateModelFilter(allModels);
                 populateParamFilter(allParameters);
+                populateExpiryFilter(allModels);
 
                 refreshResults();
             });
@@ -1580,11 +1617,14 @@
             const providerVal = document.getElementById('providerFilter').value;
             const modelVal = document.getElementById('modelFilter').value;
             const paramVal = document.getElementById('paramFilter').value;
+            const expiryVal = document.getElementById('expiryFilter').value;
+            const faixaExpiracao = FAIXAS_EXPIRACAO.find(f => f.valor === expiryVal);
 
             return allModels.filter(model => {
                 if (providerVal && getProvider(model) !== providerVal) return false;
                 if (modelVal && model.id !== modelVal) return false;
                 if (paramVal && !(model.supported_parameters || []).includes(paramVal)) return false;
+                if (faixaExpiracao && !faixaExpiracao.teste(diasParaFiltro(model))) return false;
 
                 if (q) {
                     const matchesText =
@@ -1623,6 +1663,10 @@
                 activeFilters.push(`Modelo: <strong>${escapeHtml(label)}</strong>`);
             }
             if (paramVal) activeFilters.push(`Parâmetro: <strong>${escapeHtml(paramVal)}</strong>`);
+
+            const expiryVal = document.getElementById('expiryFilter').value;
+            const faixaExpiracao = FAIXAS_EXPIRACAO.find(f => f.valor === expiryVal);
+            if (faixaExpiracao) activeFilters.push(`Expiração: <strong>${escapeHtml(faixaExpiracao.rotulo)}</strong>`);
 
             const infoEl = document.getElementById('activeFiltersInfo');
             if (activeFilters.length > 0) {
@@ -1667,6 +1711,35 @@
             const data = parseDataISO(valor);
             if (!data) return null;
             return data.toLocaleDateString('pt-BR', { year: 'numeric', month: 'short', day: 'numeric' });
+        }
+
+        // A API usa datas muito distantes (ex.: 2098-12-31) como "sem prazo real".
+        // A spec não define valor sentinela, então adotamos um corte explícito:
+        // acima disto o modelo é tratado como sem prazo definido.
+        const DIAS_PRAZO_IRRELEVANTE = 50 * 365;
+
+        // Um modelo só tem prazo efetivo se a data existir E não for absurdamente distante
+        function temPrazoEfetivo(model) {
+            const dias = diasAte(model.expiration_date);
+            return dias !== null && dias <= DIAS_PRAZO_IRRELEVANTE;
+        }
+
+        // Faixas do filtro de expiração. "dias" é null quando não há prazo efetivo.
+        // Cada faixa é cumulativa: "até 30 dias" inclui o que vence em 7.
+        const FAIXAS_EXPIRACAO = [
+            { valor: 'expirados',  rotulo: 'Já expirados',            teste: d => d !== null && d < 0 },
+            { valor: '7d',         rotulo: 'Expira em até 7 dias',    teste: d => d !== null && d >= 0 && d <= 7 },
+            { valor: '30d',        rotulo: 'Expira em até 30 dias',   teste: d => d !== null && d >= 0 && d <= 30 },
+            { valor: '90d',        rotulo: 'Expira em até 90 dias',   teste: d => d !== null && d >= 0 && d <= 90 },
+            { valor: '1ano',       rotulo: 'Expira em até 1 ano',     teste: d => d !== null && d >= 0 && d <= 365 },
+            { valor: 'sem-prazo',  rotulo: 'Sem prazo definido',      teste: d => d === null }
+        ];
+
+        // Dias até a expiração, já aplicando o corte de prazo irrelevante.
+        // Retorna null quando o modelo não tem prazo efetivo.
+        function diasParaFiltro(model) {
+            if (!temPrazoEfetivo(model)) return null;
+            return diasAte(model.expiration_date);
         }
 
         // Quantos dias faltam até a data (negativo = já passou)
