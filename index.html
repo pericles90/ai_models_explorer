@@ -1425,11 +1425,16 @@
                 const option = document.createElement('option');
                 option.value = faixa.valor;
                 option.textContent = `${faixa.rotulo} (${total})`;
-                option.disabled = total === 0;
+                // Faixa vazia é desabilitada — menos quando está selecionada agora:
+                // desabilitá-la faria o combo cair para "" e limpar o filtro sozinho.
+                option.disabled = total === 0 && faixa.valor !== valorAtual;
                 select.appendChild(option);
             });
 
-            if (valorAtual && [...select.options].some(o => o.value === valorAtual && !o.disabled)) {
+            // Restaura a seleção sempre que a opção existir, mesmo com contagem zero.
+            // Com o filtro ativo e sem resultados, o certo é mostrar "nenhum modelo
+            // encontrado" — e não resultados de um filtro que se apagou em silêncio.
+            if (valorAtual && [...select.options].some(o => o.value === valorAtual)) {
                 select.value = valorAtual;
             }
         }
