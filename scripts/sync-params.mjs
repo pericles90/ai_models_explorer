@@ -308,12 +308,24 @@ async function main() {
 
     // 3) Camada curada em português
     console.log(`→ Lendo camada curada: params.pt-BR.json`);
+    // Arquivo ausente é cenário legítimo (repo novo, sem camada curada ainda).
+    // Arquivo presente porém ilegível NÃO é: seguir em frente apagaria todas as
+    // descrições em português, e como este script roda sem supervisão e abre PR,
+    // ninguém veria o aviso. Falha alto para o CI parar.
     let overlay = {};
     try {
         const cru = JSON.parse(await readFile(ARQUIVO_OVERLAY, 'utf8'));
         overlay = cru.params || {};
     } catch (erro) {
-        console.warn(`  ⚠️  params.pt-BR.json não pôde ser lido (${erro.code || erro.message}); seguindo só com a spec.`);
+        if (erro.code === 'ENOENT') {
+            console.warn(`  ⚠️  params.pt-BR.json não existe; gerando apenas com a spec.`);
+        } else {
+            throw new Error(
+                `params.pt-BR.json existe mas não pôde ser lido (${erro.message}). ` +
+                `Abortando: continuar removeria as descrições em português. ` +
+                `Corrija o arquivo, ou apague-o se a intenção for mesmo abandonar a camada curada.`
+            );
+        }
     }
 
     const parametros = fundir(daSpec, overlay);
