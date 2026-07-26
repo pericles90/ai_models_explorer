@@ -458,7 +458,12 @@
             display: flex;
             align-items: center;
             gap: 8px;
+            flex-wrap: wrap;
+            min-width: 0;
         }
+
+        /* Sem isto o combo de ordenação não encolhe e estoura a largura no mobile */
+        .sort-group .filter-select { min-width: 0; flex: 1 1 150px; }
 
         .sort-group label {
             font-size: 0.75rem;
@@ -469,6 +474,20 @@
         }
 
         .sort-group .filter-select { padding: 8px 34px 8px 12px; font-size: 0.85rem; }
+
+        .sort-dir {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            color: var(--text-secondary);
+            font-family: inherit;
+            font-size: 0.8rem;
+            padding: 8px 12px;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .sort-dir:hover { border-color: var(--accent-primary); color: var(--text-primary); }
 
         .clear-filters-btn {
             padding: 10px 20px;
@@ -889,9 +908,52 @@
 
         .compare-bar[hidden] { display: none; }
 
-        .compare-count { font-size: 0.85rem; color: var(--text-primary); white-space: nowrap; }
+        .compare-info {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            min-width: 0;
+        }
 
-        .compare-actions { display: flex; gap: 8px; align-items: center; }
+        .compare-count { font-size: 0.75rem; color: var(--text-muted); white-space: nowrap; }
+
+        /* Rola na horizontal para o carrinho não crescer sem limite */
+        .compare-chips {
+            display: flex;
+            gap: 6px;
+            overflow-x: auto;
+            max-width: min(60vw, 620px);
+            padding-bottom: 2px;
+        }
+
+        .compare-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            flex-shrink: 0;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            padding: 4px 6px 4px 10px;
+            font-size: 0.78rem;
+            color: var(--text-primary);
+            white-space: nowrap;
+        }
+
+        .compare-chip-x {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            font-size: 0.75rem;
+            line-height: 1;
+            padding: 2px 4px;
+            cursor: pointer;
+            border-radius: 3px;
+        }
+
+        .compare-chip-x:hover { background: var(--danger); color: #fff; }
+
+        .compare-actions { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
 
         .compare-open {
             background: var(--accent-primary);
@@ -1476,6 +1538,10 @@
                         <label id="lblExpiry">Expiração</label>
                         <div class="ms" data-filtro="expiry"></div>
                     </div>
+                    <div class="filter-group">
+                        <label id="lblPreco">Cobrança</label>
+                        <div class="ms" data-filtro="preco"></div>
+                    </div>
                 </div>
                 <div class="filters-footer">
                     <span class="active-filters" id="activeFiltersInfo"></span>
@@ -1489,6 +1555,7 @@
             <div class="sort-group">
                 <label for="sortSelect">Ordenar por</label>
                 <select class="filter-select" id="sortSelect"></select>
+                <button type="button" class="sort-dir" id="sortDir">↓</button>
             </div>
         </div>
 
@@ -1502,9 +1569,12 @@
 
     <!-- Barra flutuante do modo comparar: só aparece com modelos marcados -->
     <div class="compare-bar" id="compareBar" hidden>
-        <span class="compare-count" id="compareCount"></span>
+        <div class="compare-info">
+            <span class="compare-count" id="compareCount"></span>
+            <div class="compare-chips" id="compareChips"></div>
+        </div>
         <div class="compare-actions">
-            <button type="button" class="clear-filters-btn" id="compareClear">Limpar seleção</button>
+            <button type="button" class="clear-filters-btn" id="compareClear">Limpar</button>
             <button type="button" class="compare-open" id="compareOpen">📊 Comparar</button>
         </div>
     </div>
@@ -1772,8 +1842,10 @@
             model: new Set(),
             param: new Set(),
             expiry: new Set(),
+            preco: new Set(),       // 'gratuitos' | 'pagos'
             paramModo: 'ou',        // 'ou' = suporta qualquer um | 'e' = suporta todos
-            ordenacao: 'data-desc',
+            ordemCampo: 'data',     // campo de ordenação
+            ordemDesc: true,        // direção: true = maior/mais recente primeiro
             comparar: new Set()
         };
 
@@ -1821,13 +1893,9 @@
         // ---------------------------------------------------------------
         // Ordenação
         // ---------------------------------------------------------------
-        function precoNumero(model, campo) {
-            const v = parseFloat((model.pricing || {})[campo]);
-            return Number.isFinite(v) && v >= 0 ? v : null;
-        }
-
-        // Comparador que empurra ausentes para o fim, seja qual for a direção
-        function porValor(extrair, desc = true) {
+        // Comparador genérico: ausentes SEMPRE no fim, qualquer que seja a direção.
+        // Ordenar por "menor preço" não pode trazer os sem preço na frente.
+        function porValor(extrair, desc) {
             return (a, b) => {
                 const va = extrair(a);
                 const vb = extrair(b);
@@ -1838,30 +1906,88 @@
             };
         }
 
-        const ORDENACOES = [
-            { valor: 'data-desc',     rotulo: 'Lançamento (mais recente)', cmp: porValor(m => m.created || null, true) },
-            { valor: 'data-asc',      rotulo: 'Lançamento (mais antigo)',  cmp: porValor(m => m.created || null, false) },
-            { valor: 'coding-desc',   rotulo: 'Benchmark: Código',         cmp: porValor(m => indiceBench(m, 'coding_index'), true) },
-            { valor: 'intel-desc',    rotulo: 'Benchmark: Inteligência',   cmp: porValor(m => indiceBench(m, 'intelligence_index'), true) },
-            { valor: 'agentic-desc',  rotulo: 'Benchmark: Agêntico',       cmp: porValor(m => indiceBench(m, 'agentic_index'), true) },
-            { valor: 'entrada-asc',   rotulo: 'Preço de entrada (menor)',  cmp: porValor(m => precoNumero(m, 'prompt'), false) },
-            { valor: 'saida-asc',     rotulo: 'Preço de saída (menor)',    cmp: porValor(m => precoNumero(m, 'completion'), false) },
-            { valor: 'contexto-desc', rotulo: 'Contexto (maior)',          cmp: porValor(m => m.context_length || null, true) },
-            { valor: 'expira-asc',    rotulo: 'Expira antes',              cmp: porValor(m => diasParaFiltro(m), false) },
-            { valor: 'nome-asc',      rotulo: 'Nome (A–Z)',                cmp: (a, b) => getModelDisplayName(a).localeCompare(getModelDisplayName(b), 'pt-BR') }
-        ];
+        // Campos ordenáveis. Direção fica num controle separado, senão a lista
+        // dobraria de tamanho — são 12 campos de preço só na API de hoje.
+        // Os de preço saem do PRICING_FIELDS: campo novo na API vira ordenação
+        // automaticamente, sem tocar aqui.
+        // Montada sob demanda: PRICING_FIELDS é declarado mais abaixo no arquivo,
+        // e um const aqui em cima esbarraria na zona morta temporal.
+        let _camposOrdenacao = null;
+
+        function CAMPOS_ORDENACAO() {
+            if (_camposOrdenacao) return _camposOrdenacao;
+            _camposOrdenacao = [
+            { valor: 'data',     rotulo: 'Data de lançamento', extrair: m => m.created || null,
+              rotuloDesc: 'mais recente', rotuloAsc: 'mais antigo' },
+            { valor: 'nome',     rotulo: 'Nome',               texto: true,
+              rotuloDesc: 'Z–A', rotuloAsc: 'A–Z' },
+            { valor: 'contexto', rotulo: 'Contexto',           extrair: m => m.context_length || null,
+              rotuloDesc: 'maior', rotuloAsc: 'menor' },
+            { valor: 'expira',   rotulo: 'Expiração',          extrair: m => diasParaFiltro(m),
+              rotuloDesc: 'expira depois', rotuloAsc: 'expira antes' },
+            ...INDICES_BENCH.map(i => ({
+                valor: 'bench-' + i.chave,
+                rotulo: 'Benchmark: ' + i.rotulo,
+                extrair: m => indiceBench(m, i.chave),
+                rotuloDesc: 'maior', rotuloAsc: 'menor'
+            })),
+            ...Object.entries(PRICING_FIELDS).map(([chave, campo]) => ({
+                valor: 'preco-' + chave,
+                rotulo: 'Preço: ' + campo.label,
+                extrair: m => precoNumero(m, chave),
+                rotuloDesc: 'mais caro', rotuloAsc: 'mais barato'
+            }))
+            ];
+            return _camposOrdenacao;
+        }
+
+        function precoNumero(model, campo) {
+            const v = parseFloat((model.pricing || {})[campo]);
+            // -1 = preço variável (openrouter/auto); não é ordenável como número
+            return Number.isFinite(v) && v >= 0 ? v : null;
+        }
+
+        function campoOrdenacao() {
+            return CAMPOS_ORDENACAO().find(c => c.valor === filtros.ordemCampo) || CAMPOS_ORDENACAO()[0];
+        }
 
         function popularOrdenacao() {
             const sel = document.getElementById('sortSelect');
-            sel.innerHTML = ORDENACOES
-                .map(o => '<option value="' + o.valor + '">' + escapeHtml(o.rotulo) + '</option>')
+            // Só oferece campos de preço que ao menos um modelo realmente possui
+            const usados = new Set();
+            allModels.forEach(m => Object.keys(m.pricing || {}).forEach(k => usados.add(k)));
+
+            const disponiveis = CAMPOS_ORDENACAO().filter(c =>
+                !c.valor.startsWith('preco-') || usados.has(c.valor.replace('preco-', ''))
+            );
+
+            sel.innerHTML = disponiveis
+                .map(c => '<option value="' + c.valor + '">' + escapeHtml(c.rotulo) + '</option>')
                 .join('');
-            sel.value = filtros.ordenacao;
+            sel.value = filtros.ordemCampo;
+            atualizarBotaoDirecao();
+        }
+
+        function atualizarBotaoDirecao() {
+            const campo = campoOrdenacao();
+            const btn = document.getElementById('sortDir');
+            const desc = filtros.ordemDesc;
+            btn.textContent = (desc ? '↓ ' : '↑ ') + (desc ? campo.rotuloDesc : campo.rotuloAsc);
+            btn.setAttribute('aria-label', 'Inverter ordenação: ' + campo.rotulo + ', ' +
+                (desc ? campo.rotuloDesc : campo.rotuloAsc));
         }
 
         function ordenar(models) {
-            const ord = ORDENACOES.find(o => o.valor === filtros.ordenacao) || ORDENACOES[0];
-            return [...models].sort(ord.cmp);
+            const campo = campoOrdenacao();
+            const desc = filtros.ordemDesc;
+
+            if (campo.texto) {
+                return [...models].sort((a, b) => {
+                    const r = getModelDisplayName(a).localeCompare(getModelDisplayName(b), 'pt-BR');
+                    return desc ? -r : r;
+                });
+            }
+            return [...models].sort(porValor(campo.extrair, desc));
         }
 
         // ---------------------------------------------------------------
@@ -1871,8 +1997,21 @@
             provider: { vazio: 'Todos os provedores', busca: 'Buscar provedor...',  rotulado: 'lblProvider' },
             model:    { vazio: 'Todos os modelos',    busca: 'Buscar modelo...',    rotulado: 'lblModel' },
             param:    { vazio: 'Todos os parâmetros', busca: 'Buscar parâmetro...', rotulado: 'lblParam' },
-            expiry:   { vazio: 'Qualquer expiração',  busca: 'Buscar faixa...',     rotulado: 'lblExpiry' }
+            expiry:   { vazio: 'Qualquer expiração',  busca: 'Buscar faixa...',     rotulado: 'lblExpiry' },
+            preco:    { vazio: 'Pagos e gratuitos',   busca: 'Buscar...',           rotulado: 'lblPreco' }
         };
+
+        // Um modelo é gratuito quando entrada E saída custam zero
+        const FAIXAS_PRECO = [
+            { valor: 'gratuitos', rotulo: 'Somente gratuitos', teste: m => ehGratuito(m) },
+            { valor: 'pagos',     rotulo: 'Somente pagos',     teste: m => !ehGratuito(m) }
+        ];
+
+        function ehGratuito(model) {
+            const entrada = parseFloat((model.pricing || {}).prompt);
+            const saida = parseFloat((model.pricing || {}).completion);
+            return entrada === 0 && saida === 0;
+        }
 
         // Monta a casca de cada combo uma única vez
         function montarMultiSelects() {
@@ -1977,6 +2116,14 @@
                 }));
             }
 
+            if (chave === 'preco') {
+                return FAIXAS_PRECO.map(f => ({
+                    valor: f.valor,
+                    rotulo: f.rotulo,
+                    contagem: escopo.filter(f.teste).length
+                }));
+            }
+
             return FAIXAS_EXPIRACAO.map(f => ({
                 valor: f.valor,
                 rotulo: f.rotulo,
@@ -2018,6 +2165,17 @@
                 input.addEventListener('change', () => {
                     if (input.checked) selecionados.add(input.value);
                     else selecionados.delete(input.value);
+
+                    // Filtros diferentes se combinam em E. Sem isto, marcar um
+                    // modelo de outro provedor devolveria zero resultados: o
+                    // filtro de provedor o excluiria. Marcar o modelo passa a
+                    // liberar o provedor dele — visível, porque o combo de
+                    // provedor mostra a inclusão.
+                    if (chave === 'model' && input.checked && filtros.provider.size) {
+                        const modelo = allModels.find(m => m.id === input.value);
+                        if (modelo) filtros.provider.add(getProvider(modelo));
+                    }
+
                     refreshResults();
                 });
             });
@@ -2061,6 +2219,10 @@
             }
             if (chave === 'expiry') {
                 const f = FAIXAS_EXPIRACAO.find(x => x.valor === valor);
+                return f ? f.rotulo : valor;
+            }
+            if (chave === 'preco') {
+                const f = FAIXAS_PRECO.find(x => x.valor === valor);
                 return f ? f.rotulo : valor;
             }
             return valor;
@@ -2110,15 +2272,22 @@
                 refreshResults();
             });
 
-            // Ordenação
+            // Ordenação: campo e direção são controles separados
             document.getElementById('sortSelect').addEventListener('change', (e) => {
-                filtros.ordenacao = e.target.value;
+                filtros.ordemCampo = e.target.value;
+                atualizarBotaoDirecao();
+                refreshResults();
+            });
+
+            document.getElementById('sortDir').addEventListener('click', () => {
+                filtros.ordemDesc = !filtros.ordemDesc;
+                atualizarBotaoDirecao();
                 refreshResults();
             });
 
             // Limpar filtros
             document.getElementById('clearFilters').addEventListener('click', () => {
-                ['provider', 'model', 'param', 'expiry'].forEach(k => filtros[k].clear());
+                ['provider', 'model', 'param', 'expiry', 'preco'].forEach(k => filtros[k].clear());
                 document.querySelectorAll('.ms-busca').forEach(i => { i.value = ''; });
                 refreshResults();
             });
@@ -2132,6 +2301,12 @@
                 else filtros.comparar.delete(id);
                 input.closest('.model-card').classList.toggle('comparando', input.checked);
                 atualizarBarraComparar();
+            });
+
+            // Remover pelo × do chip
+            document.getElementById('compareChips').addEventListener('click', (e) => {
+                const x = e.target.closest('.compare-chip-x');
+                if (x) removerDaComparacao(x.dataset.id);
             });
 
             document.getElementById('compareClear').addEventListener('click', () => {
@@ -2153,6 +2328,10 @@
             });
             // Abertura do modal via delegação (um listener para todos os cards)
             document.getElementById('modelsContainer').addEventListener('click', (e) => {
+                // A caixa "comparar" fica dentro do card: sem esta guarda, marcá-la
+                // borbulharia até aqui e abriria o modal por cima da ação.
+                if (e.target.closest('.card-compare')) return;
+
                 const card = e.target.closest('.model-card');
                 if (!card) return;
                 const model = allModels.find(m => m.id === card.dataset.modelId);
@@ -2224,6 +2403,7 @@
             const modelos    = ignorar === 'model'    ? null : filtros.model;
             const parametros = ignorar === 'param'    ? null : filtros.param;
             const expiracoes = ignorar === 'expiry'   ? null : filtros.expiry;
+            const cobrancas  = ignorar === 'preco'    ? null : filtros.preco;
 
             return allModels.filter(model => {
                 // Provedor e modelo são sempre OU: um modelo tem um provedor só
@@ -2236,6 +2416,14 @@
                     const atende = filtros.paramModo === 'e'
                         ? escolhidos.every(p => suportados.has(p))   // suporta TODOS
                         : escolhidos.some(p => suportados.has(p));   // suporta QUALQUER UM
+                    if (!atende) return false;
+                }
+
+                if (cobrancas && cobrancas.size) {
+                    const atende = [...cobrancas].some(v => {
+                        const faixa = FAIXAS_PRECO.find(f => f.valor === v);
+                        return faixa && faixa.teste(model);
+                    });
                     if (!atende) return false;
                 }
 
@@ -2297,6 +2485,7 @@
             }
 
             resumo('expiry', 'Expiração');
+            resumo('preco', 'Cobrança');
 
             const infoEl = document.getElementById('activeFiltersInfo');
             infoEl.innerHTML = activeFilters.length ? '🔍 ' + activeFilters.join(' • ') : '';
@@ -2309,9 +2498,35 @@
             const barra = document.getElementById('compareBar');
             const total = filtros.comparar.size;
             barra.hidden = total === 0;
-            document.getElementById('compareCount').textContent =
-                total + ' modelo' + (total > 1 ? 's' : '') + ' para comparar';
+
+            document.getElementById('compareCount').textContent = total === 1
+                ? '1 modelo — escolha mais um para comparar'
+                : total + ' modelos selecionados';
+
+            // Lista quem está no "carrinho": sem isto não dá para saber o que
+            // já foi marcado, nem remover um item sem procurá-lo na grade.
+            document.getElementById('compareChips').innerHTML = modelosEmComparacao()
+                .map(m => `
+                    <span class="compare-chip" title="${escapeHtml(m.id)}">
+                        ${escapeHtml(getModelDisplayName(m))}
+                        <button type="button" class="compare-chip-x" data-id="${escapeHtml(m.id)}"
+                                aria-label="Remover ${escapeHtml(getModelDisplayName(m))} da comparação">✕</button>
+                    </span>
+                `).join('');
+
             document.getElementById('compareOpen').disabled = total < 2;
+        }
+
+        // Remove um modelo do carrinho e reflete no card correspondente
+        function removerDaComparacao(id) {
+            filtros.comparar.delete(id);
+            const card = document.querySelector(`.model-card[data-model-id="${CSS.escape(id)}"]`);
+            if (card) {
+                card.classList.remove('comparando');
+                const input = card.querySelector('.card-compare input');
+                if (input) input.checked = false;
+            }
+            atualizarBarraComparar();
         }
 
         function modelosEmComparacao() {
@@ -2644,7 +2859,9 @@
             }
 
             // Destaca a barra do critério que está ordenando a lista
-            const chaveOrdenada = { 'coding-desc': 'coding_index', 'intel-desc': 'intelligence_index', 'agentic-desc': 'agentic_index' }[filtros.ordenacao];
+            const chaveOrdenada = filtros.ordemCampo.startsWith('bench-')
+                ? filtros.ordemCampo.replace('bench-', '')
+                : null;
 
             const linhas = valores.map(v => {
                 if (v.valor === null) {
