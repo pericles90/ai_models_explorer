@@ -44,6 +44,10 @@ O modal traz a mesma informação agrupada por natureza, com rótulos completos:
 
 Cada preço exibe também o **valor bruto em USD** exatamente como veio da API, para conferência.
 
+> `request` segue mapeado por segurança, mas **nenhum modelo o informa hoje** —
+> a OpenRouter o removeu da resposta. Ele só voltaria a aparecer se a API
+> voltasse a enviá-lo.
+
 Campos novos que a OpenRouter venha a adicionar aparecem automaticamente no grupo **❓ Outros preços**,
 com o valor bruto e sem assumir unidade — evitando exibir um número convertido errado.
 
@@ -76,10 +80,16 @@ webView.loadUrl("file:///android_asset/index.html")
 Vêm do campo `benchmarks` da API — *"third-party benchmark rankings for this model"*.
 Duas fontes, com coberturas diferentes:
 
-| Fonte | Modelos | Conteúdo |
-|-------|--------:|----------|
+Dos 343 modelos, **168 trazem o objeto `benchmarks`** — mas as duas fontes têm
+coberturas diferentes dentro desse grupo:
+
+| Fonte | Modelos com dado | Conteúdo |
+|-------|-----------------:|----------|
 | `artificial_analysis` | 117 | Índices de Inteligência, Código e Agêntico |
-| `design_arena` | 168 | ELO, win rate e colocação em 25 categorias de design |
+| `design_arena` | 114 | ELO, win rate e colocação em 25 categorias de design |
+
+> A spec marca `design_arena` como obrigatório dentro de `benchmarks`, mas **54
+> modelos o trazem como array vazio** — ter o campo não significa ter dado.
 
 No card aparecem os 3 índices, cada um como barra proporcional ao **maior valor
 de toda a base** — por isso os cards continuam comparáveis entre si mesmo com
@@ -93,14 +103,17 @@ verde. O Design Arena completo fica no modal e na comparação.
 
 ### Modo comparar
 
-Marque **2 ou mais** modelos pela caixa no card e abra a comparação: uma tabela
-lado a lado com os 3 índices, as categorias do Design Arena em que ao menos um
-dos modelos pontua, e preços/contexto. O melhor valor de cada linha aparece em
-verde — considerando que em `rank` do Arena e em preço, **menor é melhor**.
+Marque modelos pela caixa **comparar** no card. Uma barra flutuante lista os
+selecionados como chips, cada um com **×** para remover — remover pelo chip
+desmarca a caixa do card correspondente. Com **2 ou mais**, o botão Comparar
+abre a tabela lado a lado: os 3 índices, as categorias do Design Arena em que ao
+menos um dos modelos pontua, e preços/contexto. O melhor valor de cada linha
+aparece em verde — considerando que em `rank` do Arena e em preço, **menor é
+melhor**.
 
 ## 🔎 Filtros
 
-Os quatro filtros aceitam **múltipla seleção** e **busca por texto** dentro do
+Os cinco filtros aceitam **múltipla seleção** e **busca por texto** dentro do
 combo. As contagens ao lado de cada opção são calculadas no escopo dos *demais*
 filtros (busca facetada), então o número exibido é o que aquela seleção entrega.
 
@@ -222,8 +235,14 @@ abre um PR quando a OpenRouter muda alguma descrição.
 │   └── sync-params.mjs               # Funde a spec OpenAPI + camada pt-BR
 ├── .github/workflows/
 │   └── sync-params.yml               # Roda o sync semanalmente e abre PR
+├── .gitattributes                    # Fixa LF nos arquivos gerados (ver abaixo)
 └── README.md                         # Este arquivo
 ```
+
+> **Sobre o `.gitattributes`:** `params.json`, `params.pt-BR.json` e os `.mjs`/`.yml`
+> são fixados em LF. Sem isso, em máquinas com `core.autocrlf=true` o checkout os
+> converteria para CRLF, o script (que grava LF) os reescreveria a cada execução
+> e o `--check` acusaria desatualização sem nada ter mudado.
 
 ## 🤝 Contribuindo
 
