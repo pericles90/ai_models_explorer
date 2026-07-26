@@ -458,7 +458,12 @@
             display: flex;
             align-items: center;
             gap: 8px;
+            flex-wrap: wrap;
+            min-width: 0;
         }
+
+        /* Sem isto o combo de ordenação não encolhe e estoura a largura no mobile */
+        .sort-group .filter-select { min-width: 0; flex: 1 1 150px; }
 
         .sort-group label {
             font-size: 0.75rem;
@@ -903,9 +908,52 @@
 
         .compare-bar[hidden] { display: none; }
 
-        .compare-count { font-size: 0.85rem; color: var(--text-primary); white-space: nowrap; }
+        .compare-info {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            min-width: 0;
+        }
 
-        .compare-actions { display: flex; gap: 8px; align-items: center; }
+        .compare-count { font-size: 0.75rem; color: var(--text-muted); white-space: nowrap; }
+
+        /* Rola na horizontal para o carrinho não crescer sem limite */
+        .compare-chips {
+            display: flex;
+            gap: 6px;
+            overflow-x: auto;
+            max-width: min(60vw, 620px);
+            padding-bottom: 2px;
+        }
+
+        .compare-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            flex-shrink: 0;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            padding: 4px 6px 4px 10px;
+            font-size: 0.78rem;
+            color: var(--text-primary);
+            white-space: nowrap;
+        }
+
+        .compare-chip-x {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            font-size: 0.75rem;
+            line-height: 1;
+            padding: 2px 4px;
+            cursor: pointer;
+            border-radius: 3px;
+        }
+
+        .compare-chip-x:hover { background: var(--danger); color: #fff; }
+
+        .compare-actions { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
 
         .compare-open {
             background: var(--accent-primary);
@@ -1521,9 +1569,12 @@
 
     <!-- Barra flutuante do modo comparar: só aparece com modelos marcados -->
     <div class="compare-bar" id="compareBar" hidden>
-        <span class="compare-count" id="compareCount"></span>
+        <div class="compare-info">
+            <span class="compare-count" id="compareCount"></span>
+            <div class="compare-chips" id="compareChips"></div>
+        </div>
         <div class="compare-actions">
-            <button type="button" class="clear-filters-btn" id="compareClear">Limpar seleção</button>
+            <button type="button" class="clear-filters-btn" id="compareClear">Limpar</button>
             <button type="button" class="compare-open" id="compareOpen">📊 Comparar</button>
         </div>
     </div>
@@ -2252,6 +2303,12 @@
                 atualizarBarraComparar();
             });
 
+            // Remover pelo × do chip
+            document.getElementById('compareChips').addEventListener('click', (e) => {
+                const x = e.target.closest('.compare-chip-x');
+                if (x) removerDaComparacao(x.dataset.id);
+            });
+
             document.getElementById('compareClear').addEventListener('click', () => {
                 filtros.comparar.clear();
                 document.querySelectorAll('.card-compare input').forEach(i => { i.checked = false; });
@@ -2271,6 +2328,10 @@
             });
             // Abertura do modal via delegação (um listener para todos os cards)
             document.getElementById('modelsContainer').addEventListener('click', (e) => {
+                // A caixa "comparar" fica dentro do card: sem esta guarda, marcá-la
+                // borbulharia até aqui e abriria o modal por cima da ação.
+                if (e.target.closest('.card-compare')) return;
+
                 const card = e.target.closest('.model-card');
                 if (!card) return;
                 const model = allModels.find(m => m.id === card.dataset.modelId);
@@ -2437,9 +2498,35 @@
             const barra = document.getElementById('compareBar');
             const total = filtros.comparar.size;
             barra.hidden = total === 0;
-            document.getElementById('compareCount').textContent =
-                total + ' modelo' + (total > 1 ? 's' : '') + ' para comparar';
+
+            document.getElementById('compareCount').textContent = total === 1
+                ? '1 modelo — escolha mais um para comparar'
+                : total + ' modelos selecionados';
+
+            // Lista quem está no "carrinho": sem isto não dá para saber o que
+            // já foi marcado, nem remover um item sem procurá-lo na grade.
+            document.getElementById('compareChips').innerHTML = modelosEmComparacao()
+                .map(m => `
+                    <span class="compare-chip" title="${escapeHtml(m.id)}">
+                        ${escapeHtml(getModelDisplayName(m))}
+                        <button type="button" class="compare-chip-x" data-id="${escapeHtml(m.id)}"
+                                aria-label="Remover ${escapeHtml(getModelDisplayName(m))} da comparação">✕</button>
+                    </span>
+                `).join('');
+
             document.getElementById('compareOpen').disabled = total < 2;
+        }
+
+        // Remove um modelo do carrinho e reflete no card correspondente
+        function removerDaComparacao(id) {
+            filtros.comparar.delete(id);
+            const card = document.querySelector(`.model-card[data-model-id="${CSS.escape(id)}"]`);
+            if (card) {
+                card.classList.remove('comparando');
+                const input = card.querySelector('.card-compare input');
+                if (input) input.checked = false;
+            }
+            atualizarBarraComparar();
         }
 
         function modelosEmComparacao() {
