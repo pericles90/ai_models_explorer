@@ -7,18 +7,45 @@
 
 Uma aplicação web que exibe informações em tempo real sobre centenas de modelos de IA Generativa, consumindo dados diretamente da API oficial da [OpenRouter](https://openrouter.ai).
 
+### 🔗 **[Acessar o explorador →](https://pericles90.github.io/ai_models_explorer/)**
+
+<https://pericles90.github.io/ai_models_explorer/>
+
 ## ✨ Funcionalidades
 
 - 🔍 **Busca inteligente** por texto livre ou filtros combinados
 - 📊 **Visualização em cards** com preços, contexto e modalidade
+- 💰 **Preços completos** — entrada, saída, cache (leitura/escrita 5 min/1 hora), multimodal e extras
+- ⏳ **Ciclo de vida** — data de lançamento, data de expiração (destacada quando próxima) e knowledge cutoff
 - 📋 **Detalhes completos** de cada modelo em modal interativo
 - 🔧 **Documentação de parâmetros** com explicações e exemplos
 - 📱 **Design responsivo** para desktop, tablet e mobile
 - ⚡ **Zero dependências** - apenas HTML, CSS e JavaScript
 
+## 💰 Preços Exibidos
+
+O explorador mostra **todos** os campos do objeto `pricing` retornado pela API, e não apenas entrada e saída.
+Cada card lista todos os preços aplicáveis àquele modelo, todos com o mesmo padrão visual (rótulo + valor + unidade).
+O modal traz a mesma informação agrupada por natureza, com rótulos completos:
+
+| Grupo | Campos | Unidade |
+|-------|--------|---------|
+| 📝 Tokens de texto | `prompt`, `completion`, `internal_reasoning` | por 1M tokens |
+| ⚡ Cache de prompt | `input_cache_read`, `input_cache_write` (5 min), `input_cache_write_1h` (1 hora), `input_audio_cache` | por 1M tokens |
+| 🖼️ Multimodal | `image`, `image_output`, `audio`, `audio_output` | por 1M tokens |
+| 🧩 Extras | `web_search`, `request` | por unidade |
+| 📈 Condicionais | `overrides` (ex.: tabela diferente acima de 272K tokens de prompt) | conforme o campo |
+
+Cada preço exibe também o **valor bruto em USD** exatamente como veio da API, para conferência.
+
+Campos novos que a OpenRouter venha a adicionar aparecem automaticamente no grupo **❓ Outros preços**,
+com o valor bruto e sem assumir unidade — evitando exibir um número convertido errado.
+
 ## 🚀 Demo
 
-Abra o arquivo `index.html` em qualquer navegador moderno.
+**No ar em <https://pericles90.github.io/ai_models_explorer/>** (GitHub Pages).
+
+Também funciona abrindo o `index.html` direto no navegador, sem servidor.
 
 ## 📖 Uso
 
@@ -40,16 +67,45 @@ webView.loadUrl("file:///android_asset/index.html")
 
 ## 🔧 Parâmetros Documentados
 
-O explorador inclui explicações detalhadas para os principais parâmetros de API:
+As explicações dos parâmetros **não são escritas à mão**. Duas camadas se fundem:
 
-| Parâmetro | Descrição |
-|-----------|-----------|
-| `temperature` | Controle de criatividade/aleatoriedade |
-| `top_p` | Amostragem por núcleo |
-| `max_tokens` | Limite de tokens na resposta |
-| `tools` | Definição de funções (Function Calling) |
-| `stream` | Streaming via SSE |
-| ... | E muitos outros |
+1. **[Spec OpenAPI oficial da OpenRouter](https://openrouter.ai/openapi.json)**
+   (`components.schemas.ChatRequest`) — fornece tipo, valores aceitos (enum),
+   exemplo e valor padrão. Estes campos nunca são sobrepostos: são fatos da API.
+2. **[`params.pt-BR.json`](params.pt-BR.json)** — camada curada em português, que
+   sobrepõe apenas o texto explicativo e os exemplos.
+
+Parâmetro sem entrada curada usa a descrição da spec (em inglês); parâmetro que
+nem a spec descreve aparece com um aviso explícito, em vez de texto inventado.
+O modal indica a origem de cada texto e a data da última sincronização.
+
+### Como chega no navegador
+
+O site busca **`params.json` em runtime**, da mesma origem — por isso não esbarra
+em CORS. Trocar as descrições é trocar esse arquivo, sem rebuild do HTML.
+
+Se o `fetch` falhar (abertura via `file://`, WebView Android, offline), vale o
+bloco `// <auto:params>` embutido no `index.html` como fallback. Os dois
+artefatos saem do mesmo script, então nunca divergem.
+
+### Atualizando
+
+```bash
+node scripts/sync-params.mjs            # atualiza index.html + params.json
+node scripts/sync-params.mjs --dry-run  # só mostra o que seria gerado
+node scripts/sync-params.mjs --check    # falha se estiver desatualizado (CI)
+```
+
+O script reescreve apenas o bloco entre os marcadores `// <auto:params>` e
+`// </auto:params>` — não edite esse trecho à mão. Uma
+[GitHub Action](.github/workflows/sync-params.yml) roda o sync semanalmente e
+abre um PR quando a OpenRouter muda alguma descrição.
+
+> **Por que a spec não é buscada direto do navegador?** `openapi.json` não envia
+> cabeçalho CORS — o `fetch` é bloqueado. (O `/api/v1/models` envia
+> `Access-Control-Allow-Origin: *`, e por isso é consumido em tempo real.) O
+> script resolve isso no build, e o `params.json` gerado é servido da mesma
+> origem do site.
 
 ## 🛠️ Stack
 
@@ -62,8 +118,14 @@ O explorador inclui explicações detalhadas para os principais parâmetros de A
 
 ```
 .
-├── index.html   # Aplicação completa (single-file)
-└── README.md    # Este arquivo
+├── index.html                        # Aplicação (com fallback de params embutido)
+├── params.json                       # Gerado — buscado em runtime pelo site
+├── params.pt-BR.json                 # Camada curada em português (editável à mão)
+├── scripts/
+│   └── sync-params.mjs               # Funde a spec OpenAPI + camada pt-BR
+├── .github/workflows/
+│   └── sync-params.yml               # Roda o sync semanalmente e abre PR
+└── README.md                         # Este arquivo
 ```
 
 ## 🤝 Contribuindo

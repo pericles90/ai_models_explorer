@@ -1,0 +1,49 @@
+name: Sincronizar parâmetros da OpenRouter
+
+# Mantém as descrições dos parâmetros alinhadas com a spec OpenAPI oficial
+# da OpenRouter, sem edição manual.
+#
+# Custo: ZERO. Este repositório é público, e o GitHub Actions em runners
+# padrão (ubuntu-latest) é gratuito e sem limite de minutos para repos
+# públicos — a cota de 2.000 min/mês vale apenas para repos privados.
+#
+# Nada é mesclado automaticamente: o job abre um PR para revisão, e só
+# quando a OpenRouter realmente mudou alguma descrição.
+#
+# Atenção: o GitHub desativa workflows agendados após 60 dias sem atividade
+# no repositório (envia e-mail avisando). Basta reativar pela aba Actions.
+on:
+  schedule:
+    - cron: '0 6 * * 1'   # toda segunda-feira, 06:00 UTC
+  workflow_dispatch:       # permite rodar sob demanda pela aba Actions
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Sincronizar a partir da spec OpenAPI
+        run: node scripts/sync-params.mjs
+
+      - name: Abrir PR se algo mudou
+        uses: peter-evans/create-pull-request@v6
+        with:
+          commit-message: 'chore: sincroniza parâmetros com a spec da OpenRouter'
+          branch: chore/sync-params
+          delete-branch: true
+          title: 'chore: sincroniza parâmetros com a spec da OpenRouter'
+          body: |
+            Atualização automática das descrições de parâmetros a partir de
+            <https://openrouter.ai/openapi.json> (`components.schemas.ChatRequest`).
+
+            Gerado por `scripts/sync-params.mjs` — não edite o bloco
+            `// <auto:params>` à mão.
