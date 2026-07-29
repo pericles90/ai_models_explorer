@@ -1,12 +1,17 @@
 #!/usr/bin/env node
 /**
  * Sincroniza as explicações dos parâmetros da API a partir da spec OpenAPI
- * oficial da OpenRouter, fundida com a camada curada em português.
+ * do proxy da LiteLLM, fundida com a camada curada em português.
  *
  * Fontes (nesta ordem de precedência):
  *   1. params.pt-BR.json   -> descrição curada em pt-BR (HTML confiável, do repo)
- *   2. openapi.json        -> descrição, tipo, enum, exemplo e default oficiais
+ *   2. openapi.json        -> tipo, enum, exemplo e default oficiais
  * Tipo/enum/nullable SEMPRE vêm da spec; o overlay só sobrepõe texto e exemplos.
+ *
+ * Diferença importante em relação à spec da OpenRouter, usada até a migração:
+ * a spec da LiteLLM declara tipos mas NÃO traz "description" em nenhum campo.
+ * Na prática, todo o texto explicativo vem hoje da camada curada — a spec
+ * continua sendo a fonte de verdade para tipo, enum e obrigatoriedade.
  *
  * Gera DOIS artefatos:
  *   a) params.json  -> buscado em runtime pela página. Como fica na mesma origem
@@ -15,9 +20,9 @@
  *   b) bloco `// <auto:params>` embutido no index.html -> fallback usado quando
  *      o fetch falha: abertura via file://, WebView Android e modo offline.
  *
- * Por que a spec não é buscada direto do navegador: https://openrouter.ai/openapi.json
- * NÃO envia cabeçalho CORS (diferente de /api/v1/models, que envia
- * `Access-Control-Allow-Origin: *`). Por isso ela é consumida aqui, no build.
+ * Por que a spec não é buscada direto do navegador: ela não envia cabeçalho
+ * CORS (diferente do catálogo de modelos em raw.githubusercontent.com, que
+ * envia `Access-Control-Allow-Origin: *`). Por isso é consumida aqui, no build.
  *
  * Uso:
  *   node scripts/sync-params.mjs           # atualiza index.html + params.json
@@ -31,12 +36,32 @@ import { readFile, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
-const SPEC_URL = 'https://openrouter.ai/openapi.json';
-const MODELS_URL = 'https://openrouter.ai/api/v1/models';
-const SCHEMA_NAME = 'ChatRequest';
+// A spec do proxy da LiteLLM. O domínio docs.litellm.ai não publica openapi.json;
+// esta é a instância de demonstração citada na documentação do projeto.
+const SPEC_URL = 'https://litellm-api.up.railway.app/openapi.json';
+
+// ProxyChatCompletionRequest cobre chat/completion; EmbeddingRequest existe
+// porque "input" (o payload dos modelos de embedding) não aparece no primeiro.
+const SCHEMA_NAMES = ['ProxyChatCompletionRequest', 'EmbeddingRequest'];
+
+// Campos de infraestrutura do proxy, não da requisição ao modelo. Documentá-los
+// como "parâmetro do modelo" seria enganoso — e api_key não tem por que
+// aparecer numa página pública de exploração de modelos.
+const IGNORAR = new Set([
+    'api_base', 'api_key', 'api_type', 'api_version', 'custom_llm_provider',
+    'litellm_call_id', 'litellm_logging_obj', 'logger_fn', 'timeout',
+    'context_window_fallback_dict', 'fallbacks', 'num_retries'
+]);
 
 const START = '// <auto:params>';
 const END = '// </auto:params>';
+
+// O index.html declara, entre estes marcadores, quais parâmetros a interface
+// chega a renderizar (base da interface OpenAI-compatível, parâmetros
+// derivados das flags supports_* e o payload de cada modo). Ler dali garante
+// que params.json cubra exatamente o que a página vai pedir.
+const NORM_INICIO = '// <normalizacao:inicio>';
+const NORM_FIM = '// <normalizacao:fim>';
 
 const raiz = join(dirname(fileURLToPath(import.meta.url)), '..');
 const ARQUIVO_HTML = join(raiz, 'index.html');
@@ -52,7 +77,7 @@ const modoDryRun = args.has('--dry-run');
 /* ------------------------------------------------------------------ */
 
 function resolverRef(ref, spec) {
-    // "#/components/schemas/ChatToolChoice" -> objeto correspondente
+    // "#/components/schemas/ChatCompletionToolParam" -> objeto correspondente
     const partes = ref.replace(/^#\//, '').split('/');
     let atual = spec;
     for (const parte of partes) {
@@ -167,6 +192,35 @@ function extrairParametro(nome, schema, spec) {
 }
 
 /* ------------------------------------------------------------------ */
+/* Parâmetros que a interface realmente renderiza                      */
+/* ------------------------------------------------------------------ */
+
+// Executa o bloco de normalização do index.html para descobrir a lista sem
+// duplicá-la aqui. Se os marcadores sumirem, o relatório é omitido em vez de
+// derrubar o sync: ele é diagnóstico, não pré-requisito.
+async function parametrosUsadosPelaApp(html) {
+    const inicio = html.indexOf(NORM_INICIO);
+    const fim = html.indexOf(NORM_FIM);
+    if (inicio === -1 || fim === -1) return null;
+
+    const bloco = html.slice(inicio + NORM_INICIO.length, fim);
+    const fonte = `${bloco}\nexport { PARAMS_BASE_CHAT, FLAGS_PARA_PARAMS, MODOS };`;
+
+    try {
+        const mod = await import('data:text/javascript;charset=utf-8,' + encodeURIComponent(fonte));
+        return new Set([
+            'model',
+            ...mod.PARAMS_BASE_CHAT,
+            ...Object.values(mod.FLAGS_PARA_PARAMS).flat(),
+            ...Object.values(mod.MODOS).map(m => m.payload)
+        ]);
+    } catch (erro) {
+        console.warn(`  ⚠️  não foi possível ler os parâmetros usados pela app (${erro.message}).`);
+        return null;
+    }
+}
+
+/* ------------------------------------------------------------------ */
 /* Geração do bloco                                                    */
 /* ------------------------------------------------------------------ */
 
@@ -186,9 +240,8 @@ function normalizarExemplo(nome, exemplo, outraChaveEsperada = false) {
     }
 
     // Exemplo apontando para outra chave costuma ser engano — mas há casos
-    // legítimos (ex.: structured_outputs, que na prática se usa via
-    // response_format). Esses são marcados com exampleUsesOtherKey na
-    // camada curada e não geram aviso.
+    // legítimos. Esses são marcados com exampleUsesOtherKey na camada curada
+    // e não geram aviso.
     const outraChave = texto.match(/^"([^"]+)"\s*:/);
     if (outraChave) {
         if (!outraChaveEsperada) {
@@ -278,35 +331,31 @@ async function buscarJson(url, rotulo) {
 }
 
 async function main() {
-    console.log(`→ Baixando spec OpenAPI: ${SPEC_URL}`);
+    console.log(`→ Baixando spec OpenAPI da LiteLLM: ${SPEC_URL}`);
     const spec = await buscarJson(SPEC_URL, 'spec OpenAPI');
 
-    const schema = spec?.components?.schemas?.[SCHEMA_NAME];
-    if (!schema?.properties) {
-        throw new Error(`Schema components.schemas.${SCHEMA_NAME}.properties não encontrado na spec.`);
+    const props = {};
+    for (const nome of SCHEMA_NAMES) {
+        const schema = spec?.components?.schemas?.[nome];
+        if (!schema?.properties) {
+            throw new Error(`Schema components.schemas.${nome}.properties não encontrado na spec.`);
+        }
+        // O primeiro schema da lista tem precedência: "model" e "user" existem
+        // nos dois, e a definição de chat é a mais completa.
+        for (const [chave, propriedade] of Object.entries(schema.properties)) {
+            if (IGNORAR.has(chave)) continue;
+            if (!Object.hasOwn(props, chave)) props[chave] = propriedade;
+        }
     }
 
-    console.log(`→ Baixando lista de modelos: ${MODELS_URL}`);
-    const modelos = await buscarJson(MODELS_URL, 'lista de modelos');
+    const html = await readFile(ARQUIVO_HTML, 'utf8');
+    const usados = await parametrosUsadosPelaApp(html);
 
-    // Parâmetros que os modelos realmente anunciam suportar
-    const usados = new Set();
-    for (const modelo of modelos.data || []) {
-        for (const p of modelo.supported_parameters || []) usados.add(p);
-    }
-
-    const props = schema.properties;
     const daSpec = {};
-
-    // 1) Tudo que a spec descreve
     for (const [nome, propriedade] of Object.entries(props)) {
         daSpec[nome] = extrairParametro(nome, propriedade, spec);
     }
 
-    // 2) Parâmetros que os modelos anunciam mas a spec não descreve
-    const ausentes = [...usados].filter(p => !props[p]).sort();
-
-    // 3) Camada curada em português
     console.log(`→ Lendo camada curada: params.pt-BR.json`);
     // Arquivo ausente é cenário legítimo (repo novo, sem camada curada ainda).
     // Arquivo presente porém ilegível NÃO é: seguir em frente apagaria todas as
@@ -337,19 +386,31 @@ async function main() {
 
     const meta = {
         fonte: SPEC_URL,
+        schemas: SCHEMA_NAMES,
         geradoEm: new Date().toISOString().slice(0, 10),
         total,
         curados,
         daSpec: daSpecCount,
-        semTexto: semTexto.length
+        semTexto: semTexto.length,
+        comDescricao: total - semTexto.length
     };
 
     const bloco = gerarBloco(parametros, meta);
     const json = JSON.stringify({ meta, params: parametros }, null, 2);
 
     console.log(`→ ${total} parâmetros: ${curados} curados em pt-BR, ${daSpecCount} direto da spec, ${semTexto.length} sem texto`);
-    if (ausentes.length) {
-        console.log(`  · anunciados por modelos mas ausentes da spec: ${ausentes.join(', ')}`);
+
+    // Parâmetro que a interface exibe mas ninguém documentou é o caso que mais
+    // dói: aparece na tela com um aviso de "sem descrição".
+    if (usados) {
+        const semEntrada = [...usados].filter(p => !parametros[p]).sort();
+        const naoUsados = Object.keys(parametros).filter(p => !usados.has(p)).sort();
+        if (semEntrada.length) {
+            console.log(`  ⚠️  exibidos pela interface mas sem entrada nenhuma: ${semEntrada.join(', ')}`);
+        }
+        if (naoUsados.length) {
+            console.log(`  · documentados mas nunca exibidos hoje: ${naoUsados.join(', ')}`);
+        }
     }
     if (semTexto.length) {
         console.log(`  ⚠️  sem texto explicativo: ${semTexto.map(([n]) => n).join(', ')}`);
@@ -361,7 +422,6 @@ async function main() {
         return;
     }
 
-    const html = await readFile(ARQUIVO_HTML, 'utf8');
     const inicio = html.indexOf(START);
     const fim = html.indexOf(END);
     if (inicio === -1 || fim === -1) {
@@ -370,7 +430,7 @@ async function main() {
     // Recua até o começo da linha para o bloco substituir a indentação antiga também
     const inicioLinha = html.lastIndexOf('\n', inicio) + 1;
 
-    // index.html usa CRLF; o bloco é montado com \n e convertido na hora de gravar
+    // O bloco é montado com \n; se o arquivo estiver em CRLF, converte na gravação
     const usaCRLF = html.includes('\r\n');
     const blocoNormalizado = usaCRLF ? bloco.replace(/\n/g, '\r\n') : bloco;
 

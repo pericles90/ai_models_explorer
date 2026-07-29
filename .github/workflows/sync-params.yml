@@ -1,14 +1,15 @@
-name: Sincronizar parâmetros da OpenRouter
+name: Sincronizar parâmetros da LiteLLM
 
-# Mantém as descrições dos parâmetros alinhadas com a spec OpenAPI oficial
-# da OpenRouter, sem edição manual.
+# Mantém tipo, enum e valores padrão dos parâmetros alinhados com a spec
+# OpenAPI do proxy da LiteLLM, sem edição manual, e valida a normalização do
+# catálogo contra o arquivo real da LiteLLM.
 #
 # Custo: ZERO. Este repositório é público, e o GitHub Actions em runners
 # padrão (ubuntu-latest) é gratuito e sem limite de minutos para repos
 # públicos — a cota de 2.000 min/mês vale apenas para repos privados.
 #
 # Nada é mesclado automaticamente: o job abre um PR para revisão, e só
-# quando a OpenRouter realmente mudou alguma descrição.
+# quando a spec da LiteLLM realmente mudou algo.
 #
 # Atenção: o GitHub desativa workflows agendados após 60 dias sem atividade
 # no repositório (envia e-mail avisando). Basta reativar pela aba Actions.
@@ -31,19 +32,29 @@ jobs:
         with:
           node-version: '20'
 
+      # Rodam antes do sync: se a LiteLLM mudou o esquema do catálogo, os testes
+      # falham aqui e o PR não é aberto com a normalização já quebrada.
+      - name: Validar normalização contra o catálogo real
+        run: node scripts/test-normalizacao.mjs
+
+      - name: Renderizar todos os modelos do catálogo
+        run: node scripts/test-render.mjs
+
       - name: Sincronizar a partir da spec OpenAPI
         run: node scripts/sync-params.mjs
 
       - name: Abrir PR se algo mudou
         uses: peter-evans/create-pull-request@v6
         with:
-          commit-message: 'chore: sincroniza parâmetros com a spec da OpenRouter'
+          commit-message: 'chore: sincroniza parâmetros com a spec da LiteLLM'
           branch: chore/sync-params
           delete-branch: true
-          title: 'chore: sincroniza parâmetros com a spec da OpenRouter'
+          title: 'chore: sincroniza parâmetros com a spec da LiteLLM'
           body: |
-            Atualização automática das descrições de parâmetros a partir de
-            <https://openrouter.ai/openapi.json> (`components.schemas.ChatRequest`).
+            Atualização automática dos metadados de parâmetros a partir de
+            <https://litellm-api.up.railway.app/openapi.json>
+            (`components.schemas.ProxyChatCompletionRequest` e `EmbeddingRequest`).
 
             Gerado por `scripts/sync-params.mjs` — não edite o bloco
-            `// <auto:params>` à mão.
+            `// <auto:params>` à mão. O texto explicativo em português vive em
+            `params.pt-BR.json`.
