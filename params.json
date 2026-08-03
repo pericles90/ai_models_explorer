@@ -1,7 +1,7 @@
 {
   "meta": {
     "fonte": "https://openrouter.ai/openapi.json",
-    "geradoEm": "2026-07-26",
+    "geradoEm": "2026-08-03",
     "total": 46,
     "curados": 30,
     "daSpec": 15,
@@ -336,12 +336,13 @@
       "enum": [
         "auto",
         "default",
+        "fast",
         "flex",
         "priority",
         "scale"
       ],
       "nullable": true,
-      "description": "The service tier to use for processing this request.",
+      "description": "The service tier to use for processing this request. `fast` is accepted as an alias for `priority`.",
       "source": "spec",
       "example": "\"service_tier\": \"auto\"",
       "default": null,
