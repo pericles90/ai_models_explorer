@@ -208,8 +208,10 @@ node scripts/sync-params.mjs --check    # falha se estiver desatualizado (CI)
 
 O script reescreve apenas o bloco entre os marcadores `// <auto:params>` e
 `// </auto:params>` — não edite esse trecho à mão. Uma
-[GitHub Action](.github/workflows/sync-params.yml) roda o sync semanalmente e
-abre um PR quando a OpenRouter muda alguma descrição.
+[GitHub Action](.github/workflows/sync-params.yml) roda o sync semanalmente
+(segundas, 06:00 UTC) e comita direto na `main` quando a OpenRouter muda
+alguma coisa. Execução sem novidade não gera commit: o script compara
+ignorando o carimbo `geradoEm`.
 
 > **Por que a spec não é buscada direto do navegador?** `openapi.json` não envia
 > cabeçalho CORS — o `fetch` é bloqueado. (O `/api/v1/models` envia
@@ -234,7 +236,7 @@ abre um PR quando a OpenRouter muda alguma descrição.
 ├── scripts/
 │   └── sync-params.mjs               # Funde a spec OpenAPI + camada pt-BR
 ├── .github/workflows/
-│   └── sync-params.yml               # Roda o sync semanalmente e abre PR
+│   └── sync-params.yml               # Roda o sync semanalmente e comita na main
 ├── .gitattributes                    # Fixa LF nos arquivos gerados (ver abaixo)
 └── README.md                         # Este arquivo
 ```
