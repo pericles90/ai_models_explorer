@@ -204,6 +204,7 @@ artefatos saem do mesmo script, então nunca divergem.
 node scripts/sync-params.mjs            # atualiza index.html + params.json
 node scripts/sync-params.mjs --dry-run  # só mostra o que seria gerado
 node scripts/sync-params.mjs --check    # falha se estiver desatualizado (CI)
+node scripts/sync-params.test.mjs       # testa o comparador (sem rede)
 ```
 
 O script reescreve apenas o bloco entre os marcadores `// <auto:params>` e

@@ -28,7 +28,7 @@
  */
 
 import { readFile, writeFile } from 'node:fs/promises';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { dirname, join } from 'node:path';
 
 const SPEC_URL = 'https://openrouter.ai/openapi.json';
@@ -266,6 +266,23 @@ function gerarBloco(parametros, meta) {
 }
 
 /* ------------------------------------------------------------------ */
+/* Comparação ignorando o carimbo de data                              */
+/* ------------------------------------------------------------------ */
+
+// A data de geração muda todo dia; compara ignorando-a para não gerar ruído.
+// Ela aparece em DUAS formas, e as duas precisam sair: como campo JSON (em
+// params.json e no PARAM_DOCS_META embutido no index.html) e como comentário
+// no cabeçalho do bloco gerado. Ignorar só a primeira fazia htmlIgual ser
+// sempre falso na virada do dia — e o sync agendado comitava toda semana só
+// para trocar a data, sem nenhuma mudança real vinda da OpenRouter.
+// A normalização de \r\n protege contra checkout com CRLF (core.autocrlf),
+// que senão faria o --check falhar só por diferença de quebra de linha.
+export const semCarimboData = texto => texto
+    .replace(/"geradoEm":\s*"\d{4}-\d{2}-\d{2}"/g, '')
+    .replace(/\/\/ Gerado em: \d{4}-\d{2}-\d{2}/g, '')
+    .replace(/\r\n/g, '\n');
+
+/* ------------------------------------------------------------------ */
 /* Principal                                                           */
 /* ------------------------------------------------------------------ */
 
@@ -379,17 +396,11 @@ async function main() {
     let jsonAtual = null;
     try { jsonAtual = await readFile(ARQUIVO_SAIDA, 'utf8'); } catch { /* ainda não existe */ }
 
-    // A data de geração muda todo dia; compara ignorando-a para não gerar ruído.
     // O arquivo é gravado com \n final, então a comparação precisa incluí-lo —
     // sem isso o --check acusaria params.json desatualizado em toda execução.
-    // A normalização de \r\n protege contra checkout com CRLF (core.autocrlf),
-    // que senão faria o --check falhar só por diferença de quebra de linha.
-    const semData = texto => texto
-        .replace(/"geradoEm":\s*"\d{4}-\d{2}-\d{2}"/g, '')
-        .replace(/\r\n/g, '\n');
     const jsonComQuebra = json + '\n';
-    const htmlIgual = semData(novo) === semData(html);
-    const jsonIgual = jsonAtual !== null && semData(jsonComQuebra) === semData(jsonAtual);
+    const htmlIgual = semCarimboData(novo) === semCarimboData(html);
+    const jsonIgual = jsonAtual !== null && semCarimboData(jsonComQuebra) === semCarimboData(jsonAtual);
 
     if (htmlIgual && jsonIgual) {
         console.log('✓ Já está atualizado (index.html e params.json).');
@@ -408,7 +419,11 @@ async function main() {
     console.log('✓ params.json gerado (consumido em runtime pelo site).');
 }
 
-main().catch(erro => {
-    console.error(`✗ ${erro.message}`);
-    process.exit(1);
-});
+// Só executa quando chamado direto (node scripts/sync-params.mjs); importar o
+// módulo apenas expõe as funções, para os testes poderem exercitá-las sem rede.
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+    main().catch(erro => {
+        console.error(`✗ ${erro.message}`);
+        process.exit(1);
+    });
+}
