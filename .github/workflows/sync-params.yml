@@ -46,6 +46,11 @@ jobs:
         with:
           node-version: '24'
 
+      # Guarda a propriedade "só comita quando muda de verdade". Sem rede, e
+      # tolerante a clone raso: os casos que dependem do histórico se auto-pulam.
+      - name: Testar o comparador
+        run: node scripts/sync-params.test.mjs
+
       - name: Sincronizar a partir da spec OpenAPI
         run: node scripts/sync-params.mjs
 
