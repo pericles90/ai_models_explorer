@@ -1,15 +1,28 @@
-# 🤖 Explorador de Modelos de IA Generativa
+# 🤖 Explorador de Modelos de IA
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![HTML5](https://img.shields.io/badge/HTML5-E34F26?logo=html5&logoColor=white)](https://developer.mozilla.org/pt-BR/docs/Web/HTML)
 [![CSS3](https://img.shields.io/badge/CSS3-1572B6?logo=css3&logoColor=white)](https://developer.mozilla.org/pt-BR/docs/Web/CSS)
 [![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?logo=javascript&logoColor=black)](https://developer.mozilla.org/pt-BR/docs/Web/JavaScript)
 
-Uma aplicação web que exibe informações em tempo real sobre centenas de modelos de IA Generativa, consumindo dados diretamente da API oficial da [OpenRouter](https://openrouter.ai).
+Uma aplicação web que exibe informações em tempo real sobre centenas de modelos de IA de todas as modalidades, consumindo dados diretamente da API oficial da [OpenRouter](https://openrouter.ai).
 
 ### 🔗 **[Acessar o explorador →](https://pericles90.github.io/ai_models_explorer/)**
 
 <https://pericles90.github.io/ai_models_explorer/>
+
+## Catálogo completo e compatibilidade
+
+A página consulta `https://openrouter.ai/api/v1/models?output_modalities=all`. Isso inclui todas as modalidades disponibilizadas nessa consulta da OpenRouter, sem prometer cobertura de todos os modelos existentes no mercado.
+
+- O armazenamento temporário usa uma chave própria para o catálogo completo e registra a URL de origem. Dados antigos da consulta padrão não são reutilizados.
+- Busca e filtros reconhecem texto, imagem, áudio, vídeo, arquivos, vetores, decisões, transcrição, síntese de voz e reordenação. Valores novos continuam visíveis.
+- Exemplos de `chat/completions` são oferecidos somente quando há entrada de texto e a saída anunciada é exclusivamente texto. São exemplos básicos; modelos especializados podem exigir esquemas adicionais.
+- Outras operações mostram um acesso à documentação do modelo, seus parâmetros anunciados e os dados completos recebidos. Não recebem campos obrigatórios ou exemplos de conversa por suposição.
+- Campos ausentes aparecem como não informados. Limites de tokens sem aplicação são identificados, e os dados originais permanecem acessíveis nos detalhes.
+- Preços zerados de texto não tornam um modelo de vídeo ou voz gratuito. A classificação considera outros preços e condições; quando não há confirmação, indica cobrança não confirmada.
+- Comparações usam preços-base na mesma unidade. Valores de unidade desconhecida aparecem como texto, sem conversão nem destaque de menor preço.
+- A sincronização semanal de documentação continua com o mesmo escopo de `ChatRequest`. Ela não controla a inclusão de modelos no catálogo.
 
 ## ✨ Funcionalidades
 
@@ -20,8 +33,8 @@ Uma aplicação web que exibe informações em tempo real sobre centenas de mode
 - 🗓️ **Filtro por expiração** — encontre modelos já expirados ou prestes a expirar (7, 30, 90 dias ou 1 ano)
 - ☑️ **Filtros multi-seleção com busca** — digite para localizar e marque vários provedores, modelos, parâmetros ou faixas
 - 📊 **Benchmarks no card** — índices de Inteligência, Código e Agêntico em barras comparáveis entre modelos
-- ↕️ **Ordenação** — 19 campos (benchmarks, todos os preços da API, contexto, data, expiração) nas duas direções
-- 💵 **Filtro de cobrança** — separe modelos gratuitos dos pagos
+- ↕️ **Ordenação** — campos disponíveis (benchmarks, preços com unidade reconhecida, contexto, data, expiração) nas duas direções
+- 💵 **Filtro de cobrança** — distinga gratuitos, pagos, variáveis e cobrança não confirmada
 - ⚖️ **Modo comparar** — selecione modelos e veja-os lado a lado, com o melhor de cada linha destacado
 - 📋 **Detalhes completos** de cada modelo em modal interativo
 - 🔧 **Documentação de parâmetros** com explicações e exemplos
@@ -38,11 +51,11 @@ O modal traz a mesma informação agrupada por natureza, com rótulos completos:
 |-------|--------|---------|
 | 📝 Tokens de texto | `prompt`, `completion`, `internal_reasoning` | por 1M tokens |
 | ⚡ Cache de prompt | `input_cache_read`, `input_cache_write` (5 min), `input_cache_write_1h` (1 hora), `input_audio_cache` | por 1M tokens |
-| 🖼️ Multimodal | `image`, `image_output`, `audio`, `audio_output` | por 1M tokens |
+| 🖼️ Multimodal | `image`, `image_output`, `audio`, `audio_output` e campos futuros | unidade reconhecida ou valor bruto sem conversão |
 | 🧩 Extras | `web_search`, `request` | por unidade |
 | 📈 Condicionais | `overrides` (ex.: tabela diferente acima de 272K tokens de prompt) | conforme o campo |
 
-Cada preço exibe também o **valor bruto em USD** exatamente como veio da API, para conferência.
+Cada preço exibe também o **valor bruto** da API para conferência. A conversão para 1M tokens é usada somente nos campos e modalidades mapeados. Para operações de mídia ou unidades desconhecidas, o explorador preserva o valor bruto, informa a incerteza e não usa o valor em comparações numéricas. Condições como horários UTC e limites de contexto não são preços.
 
 > `request` segue mapeado por segurança, mas **nenhum modelo o informa hoje** —
 > a OpenRouter o removeu da resposta. Ele só voltaria a aparecer se a API
@@ -113,7 +126,7 @@ melhor**.
 
 ## 🔎 Filtros
 
-Os cinco filtros aceitam **múltipla seleção** e **busca por texto** dentro do
+Os sete filtros aceitam **múltipla seleção** e **busca por texto** dentro do
 combo. As contagens ao lado de cada opção são calculadas no escopo dos *demais*
 filtros (busca facetada), então o número exibido é o que aquela seleção entrega.
 
@@ -123,16 +136,11 @@ filtros (busca facetada), então o número exibido é o que aquela seleção ent
 | Modelo | OU |
 | Parâmetro | **E ou OU**, alternável no rótulo do filtro |
 | Expiração | OU — as faixas já são cumulativas entre si |
-| Cobrança | OU — gratuitos (18) e/ou pagos (325) |
+| Cobrança | OU: gratuitos no catálogo, preço positivo, variável ou não confirmado |
+| Modalidade de entrada | OU dentro do filtro |
+| Modalidade de saída | OU dentro do filtro |
 
-O alternador **E / OU** dos parâmetros muda bastante o resultado: marcar `tools`
-e `reasoning` devolve 296 modelos em OU e 191 em E.
-
-> **Por que só Parâmetro tem o alternador?** Porque é o único filtro em que um
-> modelo tem *vários* valores. `getProvider()` devolve exatamente um provedor por
-> modelo, então "anthropic **E** openai" seria sempre vazio; o mesmo vale para
-> modelo. As faixas de expiração são aninhadas (7d ⊂ 30d ⊂ 90d), então o E
-> devolveria apenas a faixa mais estreita — nunca uma informação nova.
+Parâmetros permitem escolher **E** (todos) ou **OU** (qualquer um). Modalidades usam **OU** dentro de cada filtro e **E** entre entrada e saída. Por exemplo, entrada de imagem e saída de vetores selecionam modelos que atendem aos dois critérios. As opções e contagens vêm do catálogo recebido, inclusive modalidades futuras.
 
 Filtros diferentes se combinam em **E**. Para isso não travar o uso, marcar um
 modelo cujo provedor não está selecionado **adiciona aquele provedor** à seleção
@@ -205,6 +213,9 @@ node scripts/sync-params.mjs            # atualiza index.html + params.json
 node scripts/sync-params.mjs --dry-run  # só mostra o que seria gerado
 node scripts/sync-params.mjs --check    # falha se estiver desatualizado (CI)
 node scripts/sync-params.test.mjs       # testa o comparador (sem rede)
+node scripts/catalog.test.mjs           # testa modalidades, cobrança, filtros e apresentação
+# Opcional: valide também uma resposta salva da API completa
+node scripts/catalog.test.mjs /caminho/catalog.json
 ```
 
 O script reescreve apenas o bloco entre os marcadores `// <auto:params>` e
@@ -271,3 +282,4 @@ Este projeto está sob a [licença MIT](https://opensource.org/licenses/MIT).
 <p align="center">
   Feito com ❤️ para a comunidade de desenvolvedores de IA
 </p>
+
