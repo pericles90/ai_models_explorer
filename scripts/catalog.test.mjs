@@ -26,14 +26,30 @@ const model = (output, extra = {}) => ({ id: 'test/' + output,
 const fixtures = ['text', 'image', 'audio', 'video', 'embeddings', 'decisions', 'transcription', 'speech', 'rerank', 'future'].map(x => model(x));
 context.fixtures = fixtures;
 
-test('consulta todas as modalidades e rejeita o cache de outro catálogo', () => {
+test('consulta todas as modalidades em cada carregamento, sem reutilizar dados antigos', async () => {
     assert.match(run('MODELS_API_URL'), /output_modalities=all$/);
-    storage.set('openrouter-models-cache-v1', JSON.stringify({ models: fixtures, savedAt: Date.now() }));
-    assert.equal(run('readModelsCache()'), null);
-    run('writeModelsCache(fixtures)');
-    assert.equal(run('readModelsCache().length'), fixtures.length);
-    run("localStorage.setItem(MODELS_CACHE_KEY, JSON.stringify({source:'outro', models:[], savedAt:Date.now()}))");
-    assert.equal(run('readModelsCache()'), null);
+    storage.set('openrouter-models-cache-all-v2', JSON.stringify({ models: [], savedAt: Date.now() }));
+    const requests = [];
+    context.fetch = async (url, options) => {
+        requests.push({ url, options });
+        return { ok: true, json: async () => ({ data: fixtures }) };
+    };
+    context.initModels = models => { context.receivedModels = models; };
+    await context.loadModels();
+    await context.loadModels();
+    assert.equal(requests.length, 2);
+    assert.equal(requests[0].options.cache, 'no-store');
+    assert.equal(requests[0].url, 'https://openrouter.ai/api/v1/models?output_modalities=all');
+    assert.equal(context.receivedModels.length, fixtures.length);
+});
+
+test('parâmetros vêm da resposta do modelo, sem descrições locais', () => {
+    const html = context.renderModelParameters({ supported_parameters: ['temperature', '<img src=x onerror=alert(1)>', 'temperature'] });
+    assert.match(html, /Parâmetros anunciados \(2\)/);
+    assert.match(html, /temperature/);
+    assert.match(html, /&lt;img src=x onerror=alert\(1\)&gt;/);
+    assert.doesNotMatch(html, /<img src=x|Gerado em:|sincronizadas em/);
+    assert.match(html, /openrouter\.ai\/docs\/api\/reference\/parameters/);
 });
 
 test('Jev, modalidades futuras e ausência de arquitetura não viram conversa', () => {

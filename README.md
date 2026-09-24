@@ -15,14 +15,14 @@ Uma aplicação web que exibe informações em tempo real sobre centenas de mode
 
 A página consulta `https://openrouter.ai/api/v1/models?output_modalities=all`. Isso inclui todas as modalidades disponibilizadas nessa consulta da OpenRouter, sem prometer cobertura de todos os modelos existentes no mercado.
 
-- O armazenamento temporário usa uma chave própria para o catálogo completo e registra a URL de origem. Dados antigos da consulta padrão não são reutilizados.
+- O catálogo é consultado diretamente da API a cada abertura, sem cópia local dos dados. A requisição usa `cache: 'no-store'`.
 - Busca e filtros reconhecem texto, imagem, áudio, vídeo, arquivos, vetores, decisões, transcrição, síntese de voz e reordenação. Valores novos continuam visíveis.
 - Exemplos de `chat/completions` são oferecidos somente quando há entrada de texto e a saída anunciada é exclusivamente texto. São exemplos básicos; modelos especializados podem exigir esquemas adicionais.
 - Outras operações mostram um acesso à documentação do modelo, seus parâmetros anunciados e os dados completos recebidos. Não recebem campos obrigatórios ou exemplos de conversa por suposição.
 - Campos ausentes aparecem como não informados. Limites de tokens sem aplicação são identificados, e os dados originais permanecem acessíveis nos detalhes.
 - Preços zerados de texto não tornam um modelo de vídeo ou voz gratuito. A classificação considera outros preços e condições; quando não há confirmação, indica cobrança não confirmada.
 - Comparações usam preços-base na mesma unidade. Valores de unidade desconhecida aparecem como texto, sem conversão nem destaque de menor preço.
-- A sincronização semanal de documentação continua com o mesmo escopo de `ChatRequest`. Ela não controla a inclusão de modelos no catálogo.
+- Os parâmetros exibidos são os nomes de `supported_parameters` retornados pela API para cada modelo. Explicações detalhadas ficam na documentação oficial da OpenRouter.
 
 ## ✨ Funcionalidades
 
@@ -183,53 +183,27 @@ vez de sumir:
 > Datas a mais de 50 anos são tratadas como sem prazo — decisão do explorador,
 > não da API. O limiar é a constante `DIAS_PRAZO_IRRELEVANTE` em `index.html`.
 
-## 🔧 Parâmetros Documentados
+## 🔧 Parâmetros dos modelos
 
-As explicações dos parâmetros **não são escritas à mão**. Duas camadas se fundem:
+A lista de parâmetros de cada modelo vem diretamente de `supported_parameters`
+na resposta de `GET /api/v1/models?output_modalities=all`. A API fornece os
+nomes anunciados, mas não inclui a descrição, o tipo e exemplos de cada
+parâmetro nessa resposta. Por isso, o site mostra apenas o que recebeu e
+oferece um link para a [documentação oficial dos parâmetros](https://openrouter.ai/docs/api/reference/parameters).
 
-1. **[Spec OpenAPI oficial da OpenRouter](https://openrouter.ai/openapi.json)**
-   (`components.schemas.ChatRequest`) — fornece tipo, valores aceitos (enum),
-   exemplo e valor padrão. Estes campos nunca são sobrepostos: são fatos da API.
-2. **[`params.pt-BR.json`](params.pt-BR.json)** — camada curada em português, que
-   sobrepõe apenas o texto explicativo e os exemplos.
+Não há cópia gerada ou tradução local dessas descrições. O suporte efetivo
+pode variar entre operações e provedores; consulte a documentação do modelo
+antes de montar uma requisição. Os exemplos de requisição presentes no site
+são ilustrações construídas a partir dos parâmetros anunciados, não respostas
+da API.
 
-Parâmetro sem entrada curada usa a descrição da spec (em inglês); parâmetro que
-nem a spec descreve aparece com um aviso explícito, em vez de texto inventado.
-O modal indica a origem de cada texto e a data da última sincronização.
-
-### Como chega no navegador
-
-O site busca **`params.json` em runtime**, da mesma origem — por isso não esbarra
-em CORS. Trocar as descrições é trocar esse arquivo, sem rebuild do HTML.
-
-Se o `fetch` falhar (abertura via `file://`, WebView Android, offline), vale o
-bloco `// <auto:params>` embutido no `index.html` como fallback. Os dois
-artefatos saem do mesmo script, então nunca divergem.
-
-### Atualizando
+Para verificar o código localmente:
 
 ```bash
-node scripts/sync-params.mjs            # atualiza index.html + params.json
-node scripts/sync-params.mjs --dry-run  # só mostra o que seria gerado
-node scripts/sync-params.mjs --check    # falha se estiver desatualizado (CI)
-node scripts/sync-params.test.mjs       # testa o comparador (sem rede)
-node scripts/catalog.test.mjs           # testa modalidades, cobrança, filtros e apresentação
+node scripts/catalog.test.mjs
 # Opcional: valide também uma resposta salva da API completa
 node scripts/catalog.test.mjs /caminho/catalog.json
 ```
-
-O script reescreve apenas o bloco entre os marcadores `// <auto:params>` e
-`// </auto:params>` — não edite esse trecho à mão. Uma
-[GitHub Action](.github/workflows/sync-params.yml) roda o sync semanalmente
-(segundas, 06:00 UTC) e comita direto na `main` quando a OpenRouter muda
-alguma coisa. Execução sem novidade não gera commit: o script compara
-ignorando o carimbo `geradoEm`.
-
-> **Por que a spec não é buscada direto do navegador?** `openapi.json` não envia
-> cabeçalho CORS — o `fetch` é bloqueado. (O `/api/v1/models` envia
-> `Access-Control-Allow-Origin: *`, e por isso é consumido em tempo real.) O
-> script resolve isso no build, e o `params.json` gerado é servido da mesma
-> origem do site.
 
 ## 🛠️ Stack
 
@@ -242,21 +216,12 @@ ignorando o carimbo `geradoEm`.
 
 ```
 .
-├── index.html                        # Aplicação (com fallback de params embutido)
-├── params.json                       # Gerado — buscado em runtime pelo site
-├── params.pt-BR.json                 # Camada curada em português (editável à mão)
+├── index.html                        # Aplicação e consulta direta da API
 ├── scripts/
-│   └── sync-params.mjs               # Funde a spec OpenAPI + camada pt-BR
-├── .github/workflows/
-│   └── sync-params.yml               # Roda o sync semanalmente e comita na main
-├── .gitattributes                    # Fixa LF nos arquivos gerados (ver abaixo)
+│   └── catalog.test.mjs              # Testes locais do catálogo
+├── .gitattributes                    # Normalização de texto e binários
 └── README.md                         # Este arquivo
 ```
-
-> **Sobre o `.gitattributes`:** `params.json`, `params.pt-BR.json` e os `.mjs`/`.yml`
-> são fixados em LF. Sem isso, em máquinas com `core.autocrlf=true` o checkout os
-> converteria para CRLF, o script (que grava LF) os reescreveria a cada execução
-> e o `--check` acusaria desatualização sem nada ter mudado.
 
 ## 🤝 Contribuindo
 
